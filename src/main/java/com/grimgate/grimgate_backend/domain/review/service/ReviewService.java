@@ -61,12 +61,17 @@ public class ReviewService {
                 .toList();
 
         // 4. 조합해서 반환
-        return ReviewTabResponse.builder()
-                .reviewCount(theme.getReviewCount())
-                .averageRating(theme.getRating())
-                .ratingDistribution(distribution)
-                .reviews(reviews)
-                .build();
+        return new ReviewTabResponse(
+                theme.getRating(),
+                theme.getReviewCount(),
+                theme.getPlayTime(),
+                theme.getMinPeople(),
+                theme.getMaxPeople(),
+                theme.getThumbnailUrl(),
+                theme.getRating(),  // averageRating
+                distribution,
+                reviews
+        );
     }
 
     private Pageable buildPageable(Integer page, Integer limit, String sort) {

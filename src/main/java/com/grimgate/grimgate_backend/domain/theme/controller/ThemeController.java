@@ -30,8 +30,10 @@ public class ThemeController {
 
     @GetMapping("")
     public List<ThemeResponse> getThemes(
-            ThemeSearchCondition condition
+            ThemeSearchCondition condition,
+            @RequestParam(value = "q", required = false) String keyword
     ) {
+        condition.setKeyword(keyword);
         return themeService.getThemes(condition);
     }
 

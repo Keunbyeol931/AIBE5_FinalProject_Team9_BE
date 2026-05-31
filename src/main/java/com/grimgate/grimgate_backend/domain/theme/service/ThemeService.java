@@ -67,6 +67,10 @@ public class ThemeService {
                 .filter(theme -> condition.getHorror_level() == null
                 || theme.getHorrorLevel().equals(condition.getHorror_level()))
 
+                //키워드
+                .filter(theme -> condition.getKeyword() == null
+                        || theme.getTitle().contains(condition.getKeyword()))
+
                 .map(theme -> new ThemeResponse(
                         theme.getId(),
                         theme.getThumbnailUrl(),
@@ -88,29 +92,38 @@ public class ThemeService {
         Theme theme = themeRepository.findById(id).orElseThrow();
 
         return new ThemeDetailResponse(
+                theme.getRating(),
+                theme.getReviewCount(),
+                theme.getPlayTime(),
+                theme.getMinPeople(),
+                theme.getMaxPeople(),
+                theme.getThumbnailUrl(),
                 theme.getBranch().getBranchCode(),
                 theme.getBranch().getBranchName(),
                 theme.getBranch().getRegion(),
                 theme.getBranch().getAddress(),
                 theme.getBranch().getPhone(),
                 theme.getBranch().getOperatingHours(),
-                theme.getMinPeople(),
-                theme.getMaxPeople(),
-                theme.getDescription(),
-                theme.getPlayTime()
+                theme.getDescription()
         );
     }
 
-    public BranchDetailResponse getBranches(Long id){
-        Branch branch = branchRepository.findById(id).orElseThrow();
+    public BranchDetailResponse getBranches(Long themeId){
+        Theme theme = themeRepository.findById(themeId).orElseThrow();
+        Branch branch = theme.getBranch();
+
         return new BranchDetailResponse(
+                theme.getRating(),
+                theme.getReviewCount(),
+                theme.getPlayTime(),
+                theme.getMinPeople(),
+                theme.getMaxPeople(),
+                theme.getThumbnailUrl(),
                 branch.getBranchName(),
                 branch.getRegion(),
                 branch.getOperatingHours(),
                 branch.getPhone(),
                 branch.getAddress()
-
-
         );
     }
 
