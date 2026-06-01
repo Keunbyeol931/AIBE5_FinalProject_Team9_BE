@@ -82,6 +82,7 @@ public class ThemeService {
                         theme.getReviewCount(),
                         theme.getMinPeople(),
                         theme.getMaxPeople(),
+                        theme.getTags(),
                         theme.getPlayTime(),
                         theme.getDescription()
                 ))
@@ -101,9 +102,9 @@ public class ThemeService {
                 theme.getBranch().getBranchCode(),
                 theme.getBranch().getBranchName(),
                 theme.getBranch().getRegion(),
-                theme.getBranch().getAddress(),
-                theme.getBranch().getPhone(),
-                theme.getBranch().getOperatingHours(),
+                theme.getDifficulty(),
+                theme.getHorrorLevel(),
+                theme.getPrice(),
                 theme.getDescription()
         );
     }
