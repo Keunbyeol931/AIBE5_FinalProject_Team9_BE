@@ -16,8 +16,8 @@ public class ThemeDetailResponse extends TabCommonResponse {
     private String operatingHours;
     private String description;
 
-    public ThemeDetailResponse(Double rating, Integer reviewCount, Integer playTime,
-                               Integer minPeople, Integer maxPeople, String thumbnailUrl,
+    public ThemeDetailResponse(Double rating, Integer reviewCount, Integer minPeople,
+                               Integer maxPeople, Integer playTime,String thumbnailUrl,
                                String branchCode, String branchName, String region,
                                String address, String phone, String operatingHours, String description) {
         super(rating, reviewCount, playTime, minPeople, maxPeople, thumbnailUrl);

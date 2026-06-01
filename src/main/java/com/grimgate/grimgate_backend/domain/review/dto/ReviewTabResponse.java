@@ -14,11 +14,11 @@ public class ReviewTabResponse extends TabCommonResponse {
     private Map<Integer, Integer> ratingDistribution; // 별점 분포도
 
 
-    public ReviewTabResponse(Double rating, Integer reviewCount, Integer playTime,
-                             Integer minPeople, Integer maxPeople, String thumbnailUrl,
+    public ReviewTabResponse(Double rating, Integer reviewCount, Integer minPeople,
+                             Integer maxPeople, Integer playTime,String thumbnailUrl,
                              double averageRating,
                              Map<Integer, Integer> ratingDistribution, List<ReviewResponse> reviews) {
-        super(rating, reviewCount, playTime, minPeople, maxPeople, thumbnailUrl);
+        super(rating, reviewCount, minPeople, maxPeople, playTime, thumbnailUrl);
         this.averageRating = averageRating;
         this.ratingDistribution = ratingDistribution;
         this.reviews = reviews;

@@ -12,11 +12,11 @@ public class BranchDetailResponse extends TabCommonResponse {
     private String phone;
     private String address;
 
-    public BranchDetailResponse(Double rating, Integer reviewCount, Integer playTime,
-                                Integer minPeople, Integer maxPeople, String thumbnailUrl,
+    public BranchDetailResponse(Double rating, Integer reviewCount, Integer minPeople,
+                                Integer maxPeople, Integer playTime, String thumbnailUrl,
                                 String branchName, String region, String operatingHours,
                                 String phone, String address) {
-        super(rating, reviewCount, playTime, minPeople, maxPeople, thumbnailUrl);
+        super(rating, reviewCount, minPeople, maxPeople, playTime, thumbnailUrl);
         this.branchName = branchName;
         this.region = region;
         this.operatingHours = operatingHours;

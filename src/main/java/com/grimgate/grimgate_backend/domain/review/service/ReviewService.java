@@ -64,9 +64,9 @@ public class ReviewService {
         return new ReviewTabResponse(
                 theme.getRating(),
                 theme.getReviewCount(),
-                theme.getPlayTime(),
                 theme.getMinPeople(),
                 theme.getMaxPeople(),
+                theme.getPlayTime(),
                 theme.getThumbnailUrl(),
                 theme.getRating(),  // averageRating
                 distribution,
