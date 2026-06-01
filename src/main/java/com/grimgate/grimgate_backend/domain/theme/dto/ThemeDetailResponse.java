@@ -20,7 +20,7 @@ public class ThemeDetailResponse extends TabCommonResponse {
                                Integer maxPeople, Integer playTime,String thumbnailUrl,
                                String branchCode, String branchName, String region,
                                String address, String phone, String operatingHours, String description) {
-        super(rating, reviewCount, playTime, minPeople, maxPeople, thumbnailUrl);
+        super(rating, reviewCount, minPeople, maxPeople, playTime, thumbnailUrl);
         this.branchCode = branchCode;
         this.branchName = branchName;
         this.region = region;
