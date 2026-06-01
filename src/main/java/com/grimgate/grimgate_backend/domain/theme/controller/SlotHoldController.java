@@ -2,10 +2,13 @@ package com.grimgate.grimgate_backend.domain.theme.controller;
 
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldResponse;
+import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseResponse;
 import com.grimgate.grimgate_backend.domain.theme.service.SlotHoldService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,6 +38,22 @@ public class SlotHoldController {
             @Valid @RequestBody SlotHoldRequest request
     ) {
         SlotHoldResponse response = slotHoldService.holdSlot(timeSlotId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 타임슬롯의 임시 선점(HOLD) 상태를 해제합니다.
+     *
+     * @param timeSlotId 임시 선점 해제할 타임슬롯 ID
+     * @param request    선점 해제 요청 정보 DTO
+     * @return 임시 선점 해제 결과 DTO
+     */
+    @DeleteMapping("/{timeSlotId}/hold")
+    public ResponseEntity<SlotReleaseResponse> releaseSlot(
+            @PathVariable("timeSlotId") Long timeSlotId,
+            @Valid @RequestBody SlotReleaseRequest request
+    ) {
+        SlotReleaseResponse response = slotHoldService.releaseSlot(timeSlotId, request);
         return ResponseEntity.ok(response);
     }
 }

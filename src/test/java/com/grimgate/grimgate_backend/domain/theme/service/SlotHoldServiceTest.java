@@ -10,10 +10,13 @@ import static org.mockito.Mockito.when;
 
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldResponse;
+import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseResponse;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlot;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlotStatus;
 import com.grimgate.grimgate_backend.domain.theme.repository.TimeSlotRepository;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -179,6 +183,78 @@ class SlotHoldServiceTest {
                     ResponseStatusException responseStatusEx = (ResponseStatusException) ex;
                     assertThat(responseStatusEx.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(responseStatusEx.getReason()).isEqualTo("이미 다른 사용자가 선점 중인 슬롯입니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("HOLD 해제 성공 - Redis에 저장된 선점 정보와 일치할 경우 삭제하고 released=true를 반환해야 한다")
+    void releaseSlot_Success() {
+        // given
+        Long timeSlotId = 1L;
+        Long memberId = 100L;
+        String holdToken = "some-token";
+        SlotReleaseRequest request = SlotReleaseRequest.builder()
+                .memberId(memberId)
+                .holdToken(holdToken)
+                .build();
+
+        when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), any()))
+                .thenReturn(1L);
+
+        // when
+        SlotReleaseResponse response = slotHoldService.releaseSlot(timeSlotId, request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getTimeSlotId()).isEqualTo(timeSlotId);
+        assertThat(response.isReleased()).isTrue();
+
+        verify(stringRedisTemplate).execute(any(RedisScript.class), any(List.class), any());
+    }
+
+    @Test
+    @DisplayName("HOLD 해제 실패 - Redis에 선점 정보가 존재하지 않을 경우(Lua script -1 반환) 404 NOT_FOUND 예외를 던져야 한다")
+    void releaseSlot_NotFound() {
+        // given
+        Long timeSlotId = 1L;
+        SlotReleaseRequest request = SlotReleaseRequest.builder()
+                .memberId(100L)
+                .holdToken("some-token")
+                .build();
+
+        when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), any()))
+                .thenReturn(-1L);
+
+        // when & then
+        assertThatThrownBy(() -> slotHoldService.releaseSlot(timeSlotId, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException responseStatusEx = (ResponseStatusException) ex;
+                    assertThat(responseStatusEx.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(responseStatusEx.getReason()).isEqualTo("선점 정보가 존재하지 않습니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("HOLD 해제 실패 - Redis에 저장된 값과 요청값이 일치하지 않을 경우(Lua script -2 반환) 409 CONFLICT 예외를 던져야 한다")
+    void releaseSlot_Conflict() {
+        // given
+        Long timeSlotId = 1L;
+        SlotReleaseRequest request = SlotReleaseRequest.builder()
+                .memberId(100L)
+                .holdToken("some-token")
+                .build();
+
+        when(stringRedisTemplate.execute(any(RedisScript.class), any(List.class), any()))
+                .thenReturn(-2L);
+
+        // when & then
+        assertThatThrownBy(() -> slotHoldService.releaseSlot(timeSlotId, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException responseStatusEx = (ResponseStatusException) ex;
+                    assertThat(responseStatusEx.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(responseStatusEx.getReason()).isEqualTo("선점 정보가 일치하지 않습니다.");
                 });
     }
 }

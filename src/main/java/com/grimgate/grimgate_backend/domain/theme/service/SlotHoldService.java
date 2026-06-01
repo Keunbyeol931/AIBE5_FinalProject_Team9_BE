@@ -2,13 +2,18 @@ package com.grimgate.grimgate_backend.domain.theme.service;
 
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldResponse;
+import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseResponse;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlot;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlotStatus;
 import com.grimgate.grimgate_backend.domain.theme.repository.TimeSlotRepository;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +29,22 @@ public class SlotHoldService {
 
     private final TimeSlotRepository timeSlotRepository;
     private final StringRedisTemplate stringRedisTemplate;
+
+    private static final RedisScript<Long> RELEASE_SCRIPT;
+
+    static {
+        String script =
+                "local val = redis.call('get', KEYS[1]) " +
+                "if not val then " +
+                "  return -1 " +
+                "elseif val ~= ARGV[1] then " +
+                "  return -2 " +
+                "else " +
+                "  redis.call('del', KEYS[1]) " +
+                "  return 1 " +
+                "end";
+        RELEASE_SCRIPT = new DefaultRedisScript<>(script, Long.class);
+    }
 
     /**
      * 특정 타임슬롯을 5분 동안 임시 선점(HOLD)합니다.
@@ -61,6 +82,35 @@ public class SlotHoldService {
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .expiresInSeconds(300L)
+                .build();
+    }
+
+    /**
+     * 특정 타임슬롯의 임시 선점(HOLD) 상태를 해제합니다.
+     * Redis에 저장된 HOLD 정보를 검증한 후 원자적으로 삭제합니다.
+     *
+     * @param timeSlotId 임시 선점 해제할 타임슬롯 ID
+     * @param request    선점 해제 요청 정보(memberId, holdToken) DTO
+     * @return 임시 선점 해제 결과 응답 DTO
+     */
+    @Transactional
+    public SlotReleaseResponse releaseSlot(Long timeSlotId, SlotReleaseRequest request) {
+        String key = "hold:slot:" + timeSlotId;
+        String expectedValue = request.getMemberId() + ":" + request.getHoldToken();
+
+        // Lua Script 실행을 통한 Compare-And-Delete 원자적 처리
+        Long result = stringRedisTemplate.execute(RELEASE_SCRIPT, Collections.singletonList(key), expectedValue);
+
+        if (result == null || result == -1) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "선점 정보가 존재하지 않습니다.");
+        }
+        if (result == -2) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "선점 정보가 일치하지 않습니다.");
+        }
+
+        return SlotReleaseResponse.builder()
+                .timeSlotId(timeSlotId)
+                .released(true)
                 .build();
     }
 }
