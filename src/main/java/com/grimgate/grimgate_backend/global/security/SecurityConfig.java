@@ -1,6 +1,7 @@
 package com.grimgate.grimgate_backend.global.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -43,23 +44,78 @@ public class SecurityConfig {
                 .cors(cors -> cors.configure(http))
 
                 .authorizeHttpRequests(auth -> auth
+
+                        // Swagger UI (인증 불필요)
                         .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
+                        // Auth - 인증 불필요 엔드포인트
+                        .requestMatchers(HttpMethod.POST,
                                 "/api/auth/register/member",
                                 "/api/auth/register/manager",
                                 "/api/auth/login/member",
                                 "/api/auth/login/manager",
                                 "/api/auth/refresh",
-                                "/api/auth/logout",
-                                "/api/auth/check-email",
-                                "/api/auth/check-nickname",
                                 "/api/auth/oauth/google",
                                 "/api/auth/password/reset-request",
-                                "/api/auth/password/reset",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/api/auth/password/reset"
                         ).permitAll()
-                        .requestMatchers("/api/manager/**").hasRole("MANAGER")
-                        .requestMatchers("/api/member/**").hasRole("MEMBER")
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/auth/check-email",
+                                "/api/auth/check-nickname"
+                        ).permitAll()
+
+                        // Theme - 조회는 인증 불필요
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/themes",
+                                "/api/themes/popular",
+                                "/api/themes/{id}",
+                                "/api/themes/{id}/reviews",
+                                "/api/themes/{id}/slots",
+                                "/api/themes/{id}/age-check"
+                        ).permitAll()
+
+                        // Branch - 조회는 인증 불필요
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/branches",
+                                "/api/branches/{id}",
+                                "/api/branches/{id}/themes"
+                        ).permitAll()
+
+                        // Slot - 가용 슬롯 조회는 인증 불필요
+                        .requestMatchers(HttpMethod.GET, "/api/slots/available").permitAll()
+
+                        // Mate Post - 조회는 인증 불필요
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/mate-posts",
+                                "/api/mate-posts/{id}",
+                                "/api/mate-posts/{id}/comments",
+                                "/api/mate-posts/stats"
+                        ).permitAll()
+
+                        // Review - 단건 조회는 인증 불필요
+                        .requestMatchers(HttpMethod.GET, "/api/reviews/{id}").permitAll()
+
+                        // 공통 조회 - 인증 불필요
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/profile-characters",
+                                "/api/titles",
+                                "/api/achievements"
+                        ).permitAll()
+
+                        // AI 추천 - 인증 불필요
+                        .requestMatchers(HttpMethod.POST, "/api/ai/recommend").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/ai/recommend/random").permitAll()
+
+                        // Admin - ADMIN 역할만 접근 가능
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Owner - MANAGER 역할만 접근 가능
+                        .requestMatchers("/api/owner/**").hasRole("MANAGER")
+
+                        // 나머지 모든 요청은 인증 필요 (/api/auth/logout 포함)
                         .anyRequest().authenticated()
                 )
 

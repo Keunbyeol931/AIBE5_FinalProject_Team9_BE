@@ -130,14 +130,9 @@ public class AuthService {
     // 로그인
     @Transactional
     public TokenResponse login(LoginRequest request, Role role) {
-        // 이메일로 계정 조회 (탈퇴 계정 포함)
+        // 이메일로 계정 조회 (@SQLRestriction으로 탈퇴 계정 자동 제외)
         Account account = accountRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
-
-        // 탈퇴 계정 차단 (deletedAt != null)
-        if (account.getDeletedAt() != null) {
-            throw new CustomException(ErrorCode.ACCOUNT_NOT_FOUND);
-        }
 
         // 역할 일치 확인
         if (!account.getRole().equals(role)) {
