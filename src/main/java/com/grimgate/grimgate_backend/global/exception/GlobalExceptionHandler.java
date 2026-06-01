@@ -4,6 +4,7 @@ import com.grimgate.grimgate_backend.global.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,15 +24,22 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(e.getMessage()));
     }
 
-    // 400: @Valid 유효성 검사 실패 (첫 번째 오류 메시지만 반환)
+    // 400: @Valid 유효성 검사 실패 (FieldError → GlobalError 순으로 첫 번째 오류 메시지 반환)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
+        // @NotBlank, @Pattern 등 필드 수준 오류 먼저 확인
         String errorMessage = e.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .findFirst()
                 .map(fieldError -> fieldError.getDefaultMessage())
-                .orElse("유효성 검사에 실패했습니다.");
+                // @AssertTrue 등 클래스 수준 오류(globalErrors) 확인
+                .orElseGet(() -> e.getBindingResult()
+                        .getGlobalErrors()
+                        .stream()
+                        .findFirst()
+                        .map(globalError -> globalError.getDefaultMessage())
+                        .orElse("유효성 검사에 실패했습니다."));
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -44,6 +52,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.METHOD_NOT_ALLOWED)
                 .body(ApiResponse.fail("지원하지 않는 HTTP 메서드입니다."));
+    }
+
+    // 400: JSON 파싱 실패 (잘못된 타입, 형식 오류 등)
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail("입력값 형식이 올바르지 않습니다."));
     }
 
     // ResponseStatusException 처리 (404, 409 등 상태 코드와 메시지 매핑)

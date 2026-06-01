@@ -59,6 +59,7 @@ Desktop.ini
 
 # logs
 *.log
+server_log.txt
 
 # Claude Code
 CLAUDE.md
