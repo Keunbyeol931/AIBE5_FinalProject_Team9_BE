@@ -9,6 +9,7 @@ import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.BranchRepository;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
+import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -112,4 +114,28 @@ public class OwnerServiceTest {
             verify(themeRepository, times(1)).deleteById(1L);
         }
     }
+
+    @Test
+    @DisplayName("다른 지점 테마 수정, 삭제 실패")
+    void updateTheme_forbidden() {
+        try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
+            securityUtil.when(SecurityUtil::getCurrentAccountId).thenReturn(1L);
+
+            Manager manager = Manager.builder().id(1L).build();
+            Branch myBranch = Branch.builder().id(1L).build();      // 내 지점
+            Branch otherBranch = Branch.builder().id(2L).build();   // 다른 지점
+            Theme theme = Theme.builder().branch(otherBranch).build(); // 다른 지점 테마
+            ThemeUpdateRequest request = new ThemeUpdateRequest();
+
+            when(managerRepository.findByAccount_Id(any())).thenReturn(Optional.of(manager));
+            when(branchRepository.findByManagerId(any())).thenReturn(Optional.of(myBranch));
+            when(themeRepository.findById(any())).thenReturn(Optional.of(theme));
+
+            // then - 예외 발생해야 함
+            assertThrows(CustomException.class, () -> ownerService.updateTheme(1L, request));
+            assertThrows(CustomException.class, () -> ownerService.deleteTheme(1L));
+        }
+    }
+
+
 }
