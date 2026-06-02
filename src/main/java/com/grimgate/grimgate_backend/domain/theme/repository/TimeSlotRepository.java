@@ -4,7 +4,9 @@ import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlot;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlotStatus;
 import java.time.LocalDate;
 import java.util.List;
+import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -51,5 +53,24 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
             @Param("horrorLevel") Integer horrorLevel,
             @Param("difficulty") Integer difficulty,
             @Param("minRating") Double minRating
+    );
+
+    /**
+     * 타임슬롯의 상태를 특정 조건에 부합할 때(예: 현재 SLOT_AVAILABLE 일 때) 벌크 연산으로 변경합니다.
+     *
+     * @param id            타임슬롯 식별자
+     * @param newStatus     변경할 새로운 상태
+     * @param currentStatus 현재 기대되는 타임슬롯 상태
+     * @param updatedAt     수정 일시
+     * @return 업데이트된 행의 수 (1이면 성공, 0이면 이미 상태가 변경되었거나 매칭 실패)
+     */
+    @Modifying
+    @Query("update TimeSlot t set t.status = :newStatus, t.updatedAt = :updatedAt " +
+           "where t.id = :id and t.status = :currentStatus")
+    int updateStatus(
+            @Param("id") Long id,
+            @Param("newStatus") TimeSlotStatus newStatus,
+            @Param("currentStatus") TimeSlotStatus currentStatus,
+            @Param("updatedAt") LocalDateTime updatedAt
     );
 }
