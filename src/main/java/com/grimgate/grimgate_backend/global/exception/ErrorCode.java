@@ -36,7 +36,14 @@ public enum ErrorCode {
     // 지점/테마 (사장님 페이지)
     BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, "지점을 찾을 수 없습니다."),
     BRANCH_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 지점에 대한 권한이 없습니다."),
-    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "테마를 찾을 수 없습니다.");
+    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "테마를 찾을 수 없습니다."),
+
+    // 메이트 모집
+    MATE_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "메이트 모집글을 찾을 수 없습니다."),
+    MATE_POST_FORBIDDEN(HttpStatus.FORBIDDEN, "다른 사용자의 메이트 모집글입니다."),
+    MATE_POST_INVALID_DEADLINE(HttpStatus.BAD_REQUEST, "마감일은 모임 시간보다 늦을 수 없습니다."),
+    MATE_POST_INVALID_MEETING_TIME(HttpStatus.BAD_REQUEST, "모임 시간은 현재 이후여야 합니다."),
+    MATE_POST_INVALID_OPEN_CHAT_URL(HttpStatus.BAD_REQUEST, "카카오 오픈채팅 URL 형식이 올바르지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
