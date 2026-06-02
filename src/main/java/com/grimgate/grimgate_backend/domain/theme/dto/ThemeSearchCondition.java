@@ -13,8 +13,8 @@ public class ThemeSearchCondition {
     private Integer difficulty;
     private Integer min_people;
     private Integer maxPeople;
-    private Integer horror_level;
-    private Double min_rating; //평점
+    private Integer horrorLevel;
+    private Double minRating; //평점
     private String sort;
     private Integer page;
     private Integer limit;

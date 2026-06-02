@@ -60,12 +60,12 @@ public class ThemeService {
                 )
 
                 //최소 평점
-                .filter(theme -> condition.getMin_rating()== null
-                        || theme.getRating() >=condition.getMin_rating()
+                .filter(theme -> condition.getMinRating()== null
+                        || theme.getRating() >=condition.getMinRating()
                 )
                 //공포도
-                .filter(theme -> condition.getHorror_level() == null
-                || theme.getHorrorLevel().equals(condition.getHorror_level()))
+                .filter(theme -> condition.getHorrorLevel() == null
+                || theme.getHorrorLevel().equals(condition.getHorrorLevel()))
 
                 //키워드
                 .filter(theme -> condition.getKeyword() == null
