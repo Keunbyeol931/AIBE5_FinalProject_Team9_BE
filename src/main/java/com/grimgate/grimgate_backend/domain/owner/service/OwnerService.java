@@ -38,8 +38,10 @@ public class OwnerService {
     //테마 등록
     public void createTheme( ThemeCreateRequest request) {
         Long accountId = SecurityUtil.getCurrentAccountId();
-        Manager manager = managerRepository.findByAccount_Id(accountId).orElseThrow();
-        Branch branch = branchRepository.findByManagerId(manager.getId()).orElseThrow();
+        Manager manager = managerRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
+        Branch branch = branchRepository.findByManagerId(manager.getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.BRANCH_NOT_FOUND));
 
         Theme theme = Theme.builder()
                 .branch(branch)
@@ -52,6 +54,8 @@ public class OwnerService {
                 .minPeople(request.getMinPeople())
                 .maxPeople(request.getMaxPeople())
                 .price(request.getPrice())
+                .rating(0.0)
+                .reviewCount(0)
                 .tags(request.getTags())
                 .thumbnailUrl(request.getThumbnailUrl())
                 .build();
@@ -62,15 +66,31 @@ public class OwnerService {
     //테마 수정
     @Transactional
     public void updateTheme(Long themeId, ThemeUpdateRequest request) {
+
         Long accountId = SecurityUtil.getCurrentAccountId();
-        Manager manager = managerRepository.findByAccount_Id(accountId).orElseThrow();
-        Branch branch = branchRepository.findByManagerId(manager.getId()).orElseThrow();
+        Manager manager = managerRepository.findByAccount_Id(accountId)
+                .orElseThrow(()-> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
+        Branch branch = branchRepository.findByManagerId(manager.getId())
+                .orElseThrow(()-> new CustomException(ErrorCode.BRANCH_NOT_FOUND));
         Theme theme = themeRepository.findById(themeId)
-                .orElseThrow();
+                .orElseThrow(()-> new CustomException(ErrorCode.THEME_NOT_FOUND));
 
         // 본인 지점 테마인지 검증
         if (!theme.getBranch().getId().equals(branch.getId())) {
             throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+
+        //min이 max보다 크지 않도록 검증
+        int minPeople = request.getMinPeople() != null
+                ? request.getMinPeople()
+                : theme.getMinPeople();
+
+        int maxPeople = request.getMaxPeople() != null
+                ? request.getMaxPeople()
+                : theme.getMaxPeople();
+
+        if (minPeople > maxPeople) {
+            throw new CustomException(ErrorCode.INVALID_THEME_CAPACITY);
         }
         theme.update(request);
     }
@@ -79,10 +99,13 @@ public class OwnerService {
     @Transactional
     public void deleteTheme(Long themeId) {
         Long accountId = SecurityUtil.getCurrentAccountId();
-        Manager manager = managerRepository.findByAccount_Id(accountId).orElseThrow();
-        Branch branch = branchRepository.findByManagerId(manager.getId()).orElseThrow();
+        Manager manager = managerRepository.findByAccount_Id(accountId)
+                .orElseThrow(()-> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
+        Branch branch = branchRepository.findByManagerId(manager.getId())
+                .orElseThrow(()->new CustomException(ErrorCode.BRANCH_NOT_FOUND));
 
-        Theme theme = themeRepository.findById(themeId).orElseThrow();
+        Theme theme = themeRepository.findById(themeId)
+                .orElseThrow(()-> new CustomException(ErrorCode.THEME_NOT_FOUND));
 
         // 본인 지점 테마인지 검증
         if (!theme.getBranch().getId().equals(branch.getId())) {
@@ -97,9 +120,9 @@ public class OwnerService {
     public List<ThemeResponse> getOwnerThemes() {
         Long accountId = SecurityUtil.getCurrentAccountId();
         Manager manager = managerRepository.findByAccount_Id(accountId)
-                .orElseThrow();
+                .orElseThrow(()-> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
         Branch branch = branchRepository.findByManagerId(manager.getId())
-                .orElseThrow();
+                .orElseThrow(()-> new CustomException(ErrorCode.BRANCH_NOT_FOUND));
         return themeRepository.findByBranchId(branch.getId())
                 .stream()
                 .map(ThemeResponse::from)

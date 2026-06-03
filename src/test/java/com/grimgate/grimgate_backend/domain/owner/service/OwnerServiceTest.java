@@ -42,30 +42,38 @@ public class OwnerServiceTest {
 
     @Test
     @DisplayName("테마 등록 성공")
-
     void createTheme_success() {
-        Account account = Account.builder()
-                .id(1L)
-                .build();
+        try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
 
-        Manager manager = Manager.builder()
-                .id(1L)
-                .account(account).build();
+            securityUtil.when(SecurityUtil::getCurrentAccountId)
+                    .thenReturn(1L);
 
-        Branch branch = Branch.builder()
-                .id(1L)
-                .build();
+            Account account = Account.builder()
+                    .id(1L)
+                    .build();
 
-        ThemeCreateRequest request = new ThemeCreateRequest();
+            Manager manager = Manager.builder()
+                    .id(1L)
+                    .account(account)
+                    .build();
 
-        when(managerRepository.findByAccount_Id(any())).thenReturn(Optional.of(manager));
-        when(themeRepository.save(any())).thenReturn(Optional.of(branch));
+            Branch branch = Branch.builder()
+                    .id(1L)
+                    .build();
 
-        // when
-        ownerService.createTheme(request);
+            ThemeCreateRequest request = new ThemeCreateRequest();
 
-        // then
-        verify(themeRepository, times(1)).save(any(Theme.class));
+            when(managerRepository.findByAccount_Id(any()))
+                    .thenReturn(Optional.of(manager));
+
+            when(branchRepository.findByManagerId(any()))
+                    .thenReturn(Optional.of(branch));
+
+            ownerService.createTheme(request);
+
+            verify(themeRepository, times(1))
+                    .save(any(Theme.class));
+        }
     }
 
     @Test
@@ -77,7 +85,7 @@ public class OwnerServiceTest {
 
             Manager manager = Manager.builder().id(1L).build();
             Branch branch = Branch.builder().id(1L).build();
-            Theme theme = Theme.builder().branch(branch).build();
+            Theme theme = Theme.builder().branch(branch).minPeople(2).maxPeople(6).build();
             ThemeUpdateRequest request = new ThemeUpdateRequest();
 
             when(managerRepository.findByAccount_Id(any())).thenReturn(Optional.of(manager));

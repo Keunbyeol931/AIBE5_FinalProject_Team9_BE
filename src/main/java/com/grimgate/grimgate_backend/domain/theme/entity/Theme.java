@@ -17,7 +17,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 /**
  * 방탈출 테마 정보를 관리하는 엔티티입니다.
@@ -37,6 +39,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Entity
 @Table(name = "theme")
 @Getter
+@SQLDelete(sql = "UPDATE theme SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Theme {
 
@@ -185,6 +189,16 @@ public class Theme {
      * 빠른예약 단위 테스트에서 Branch, rating, 인원 범위, 난이도, 공포도 등을 가진
      * Theme 테스트 객체를 만들기 위해 사용됩니다.
      */
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    /**
+     * 테마 삭제 시각입니다.
+     * <p>
+     * 실제 데이터를 삭제하지 않고 이 값을 채워 비활성화합니다. (Soft Delete)
+     * NULL이면 활성 테마, 값이 있으면 삭제된 테마입니다.
+     */
+
     @Builder
     public Theme(
             Long id,
