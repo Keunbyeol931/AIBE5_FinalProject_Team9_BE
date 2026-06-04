@@ -4,6 +4,8 @@ import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * 테마(Theme) 엔티티에 대한 데이터베이스 액세스 처리를 담당하는 Repository 인터페이스입니다.
  * 
@@ -12,4 +14,5 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface ThemeRepository extends JpaRepository<Theme, Long> {
+    List<Theme> findByBranchId(Long branchId);
 }

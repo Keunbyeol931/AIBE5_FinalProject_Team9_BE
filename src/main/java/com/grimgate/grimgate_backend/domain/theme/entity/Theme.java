@@ -1,5 +1,7 @@
 package com.grimgate.grimgate_backend.domain.theme.entity;
 
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,7 +17,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 /**
  * 방탈출 테마 정보를 관리하는 엔티티입니다.
@@ -35,6 +39,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Entity
 @Table(name = "theme")
 @Getter
+@SQLDelete(sql = "UPDATE theme SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Theme {
 
@@ -44,7 +50,7 @@ public class Theme {
 
     /**
      * 테마가 소속된 지점입니다.
-     *
+     * <p>
      * 빠른예약 조회에서 지역 필터와 지점명 응답에 사용됩니다.
      * 예: 서울 지역 테마만 조회, 강남점 테마 조회 등
      */
@@ -54,7 +60,7 @@ public class Theme {
 
     /**
      * 테마명입니다.
-     *
+     * <p>
      * 빠른예약 목록, 테마 상세 페이지, 예약 화면에서 사용자에게 노출됩니다.
      */
     @Column(nullable = false)
@@ -62,7 +68,7 @@ public class Theme {
 
     /**
      * 테마 설명입니다.
-     *
+     * <p>
      * 테마 상세 페이지와 목록 응답에서 테마의 분위기나 소개 문구로 사용됩니다.
      */
     @Column(nullable = false)
@@ -70,7 +76,7 @@ public class Theme {
 
     /**
      * 테마 태그입니다.
-     *
+     * <p>
      * 예: 공포, 초보추천, 스릴러 등
      * 이후 검색 또는 화면 표시용으로 활용할 수 있습니다.
      */
@@ -78,7 +84,7 @@ public class Theme {
 
     /**
      * 공포도입니다.
-     *
+     * <p>
      * 빠른예약 필터 조건으로 사용됩니다.
      * 예: horrorLevel이 높은 테마만 조회
      */
@@ -87,7 +93,7 @@ public class Theme {
 
     /**
      * 난이도입니다.
-     *
+     * <p>
      * 빠른예약 필터 조건으로 사용됩니다.
      */
     @Column(nullable = false)
@@ -95,7 +101,7 @@ public class Theme {
 
     /**
      * 이용 가능 연령 제한입니다.
-     *
+     * <p>
      * 예약 생성 시 사용자 나이 검증에 활용될 수 있습니다.
      */
     @Column(name = "age_limit", nullable = false)
@@ -103,7 +109,7 @@ public class Theme {
 
     /**
      * 플레이 시간입니다.
-     *
+     * <p>
      * 테마 상세 정보와 예약 가능 시간 안내에 사용됩니다.
      */
     @Column(name = "play_time", nullable = false)
@@ -111,7 +117,7 @@ public class Theme {
 
     /**
      * 최소 예약 가능 인원입니다.
-     *
+     * <p>
      * 빠른예약에서 사용자가 선택한 인원 수가
      * minPeople 이상인지 검증할 때 사용됩니다.
      */
@@ -120,7 +126,7 @@ public class Theme {
 
     /**
      * 최대 예약 가능 인원입니다.
-     *
+     * <p>
      * 빠른예약에서 사용자가 선택한 인원 수가
      * maxPeople 이하인지 검증할 때 사용됩니다.
      */
@@ -129,7 +135,7 @@ public class Theme {
 
     /**
      * 1인 기준 또는 테마 기준 가격입니다.
-     *
+     * <p>
      * 빠른예약 목록 및 예약 금액 계산에 사용됩니다.
      */
     @Column(nullable = false)
@@ -137,7 +143,7 @@ public class Theme {
 
     /**
      * 테마 평점입니다.
-     *
+     * <p>
      * 빠른예약 기본 정렬인 rating_desc에서 사용됩니다.
      * 현재 develop 기준과 충돌을 줄이기 위해 Double 타입을 사용합니다.
      */
@@ -145,7 +151,7 @@ public class Theme {
 
     /**
      * 리뷰 개수입니다.
-     *
+     * <p>
      * 빠른예약 목록에서 평점과 함께 사용자 신뢰도를 보여주는 정보로 사용됩니다.
      */
     @Column(name = "review_count")
@@ -153,7 +159,7 @@ public class Theme {
 
     /**
      * 테마 썸네일 이미지 URL입니다.
-     *
+     * <p>
      * 빠른예약 목록 카드와 테마 상세 페이지에서 사용됩니다.
      */
     @Column(name = "thumbnail_url", nullable = false)
@@ -161,7 +167,7 @@ public class Theme {
 
     /**
      * 테마 데이터 생성 시각입니다.
-     *
+     * <p>
      * Hibernate가 엔티티 최초 저장 시 자동으로 값을 채웁니다.
      */
     @CreationTimestamp
@@ -170,7 +176,7 @@ public class Theme {
 
     /**
      * 테마 데이터 수정 시각입니다.
-     *
+     * <p>
      * Hibernate가 엔티티 수정 시 자동으로 값을 갱신합니다.
      */
     @UpdateTimestamp
@@ -179,10 +185,20 @@ public class Theme {
 
     /**
      * 테스트 코드 및 초기 데이터 구성에서 Theme 객체를 생성하기 위한 Builder 생성자입니다.
-     *
+     * <p>
      * 빠른예약 단위 테스트에서 Branch, rating, 인원 범위, 난이도, 공포도 등을 가진
      * Theme 테스트 객체를 만들기 위해 사용됩니다.
      */
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    /**
+     * 테마 삭제 시각입니다.
+     * <p>
+     * 실제 데이터를 삭제하지 않고 이 값을 채워 비활성화합니다. (Soft Delete)
+     * NULL이면 활성 테마, 값이 있으면 삭제된 테마입니다.
+     */
+
     @Builder
     public Theme(
             Long id,
@@ -216,5 +232,22 @@ public class Theme {
         this.rating = rating;
         this.reviewCount = reviewCount;
         this.thumbnailUrl = thumbnailUrl;
+    }
+
+
+    //프론트에서 수정 요청이 오면 기존 테마 객체의 필드값을 새로운 값으로 덮어씀
+    //일부만 수정 가능하도록
+    public void update(ThemeUpdateRequest request) {
+        if (request.getTitle() != null) this.title = request.getTitle();
+        if (request.getDescription() != null) this.description = request.getDescription();
+        if (request.getTags() != null) this.tags = request.getTags();
+        if (request.getHorrorLevel() != null) this.horrorLevel = request.getHorrorLevel();
+        if (request.getDifficulty() != null) this.difficulty = request.getDifficulty();
+        if (request.getAgeLimit() != null) this.ageLimit = request.getAgeLimit();
+        if (request.getPlayTime() != null) this.playTime = request.getPlayTime();
+        if (request.getMinPeople() != null) this.minPeople = request.getMinPeople();
+        if (request.getMaxPeople() != null) this.maxPeople = request.getMaxPeople();
+        if (request.getPrice() != null) this.price = request.getPrice();
+        if (request.getThumbnailUrl() != null) this.thumbnailUrl = request.getThumbnailUrl();
     }
 }

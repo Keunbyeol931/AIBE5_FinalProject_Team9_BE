@@ -24,7 +24,7 @@ public enum ErrorCode {
     REVOKED_TOKEN(HttpStatus.UNAUTHORIZED, "이미 로그아웃된 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "리프레시 토큰을 찾을 수 없습니다."),
 
-    // 회원/역할
+    // 회원/역할INVALID_TOKEN
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "멤버 정보를 찾을 수 없습니다."),
     MANAGER_NOT_FOUND(HttpStatus.NOT_FOUND, "매니저 정보를 찾을 수 없습니다."),
     INVALID_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 역할입니다."),
@@ -36,7 +36,8 @@ public enum ErrorCode {
     // 지점/테마 (사장님 페이지)
     BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, "지점을 찾을 수 없습니다."),
     BRANCH_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 지점에 대한 권한이 없습니다."),
-    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "테마를 찾을 수 없습니다.");
+    THEME_NOT_FOUND(HttpStatus.NOT_FOUND, "테마를 찾을 수 없습니다."),
+    INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST,"최소 인원은 최대 인원보다 클 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

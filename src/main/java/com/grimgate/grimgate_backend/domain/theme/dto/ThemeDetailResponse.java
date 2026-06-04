@@ -11,22 +11,22 @@ public class ThemeDetailResponse extends TabCommonResponse {
     private String branchCode;
     private String branchName;
     private String region;
-    private String address;
-    private String phone;
-    private String operatingHours;
+    private Integer difficulty;
+    private Integer horrorLevel;
+    private Integer price;
     private String description;
 
     public ThemeDetailResponse(Double rating, Integer reviewCount, Integer minPeople,
                                Integer maxPeople, Integer playTime,String thumbnailUrl,
                                String branchCode, String branchName, String region,
-                               String address, String phone, String operatingHours, String description) {
+                              Integer difficulty,Integer horrorLevel, Integer price, String description) {
         super(rating, reviewCount, minPeople, maxPeople, playTime, thumbnailUrl);
         this.branchCode = branchCode;
         this.branchName = branchName;
         this.region = region;
-        this.address = address;
-        this.phone = phone;
-        this.operatingHours = operatingHours;
+        this.difficulty = difficulty;
+        this.horrorLevel = horrorLevel;
+        this.price = price;
         this.description = description;
     }
 
