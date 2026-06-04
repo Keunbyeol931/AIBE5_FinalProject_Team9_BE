@@ -47,6 +47,7 @@ class ReservationControllerTest {
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         ReservationCreateResponse response = ReservationCreateResponse.builder()
@@ -100,6 +101,7 @@ class ReservationControllerTest {
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         when(reservationService.createReservation(any(ReservationCreateRequest.class)))
@@ -121,6 +123,7 @@ class ReservationControllerTest {
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         when(reservationService.createReservation(any(ReservationCreateRequest.class)))

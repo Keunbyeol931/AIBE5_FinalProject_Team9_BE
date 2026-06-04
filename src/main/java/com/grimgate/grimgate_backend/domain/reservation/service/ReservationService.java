@@ -56,6 +56,11 @@ public class ReservationService {
      */
     @Transactional
     public ReservationCreateResponse createReservation(ReservationCreateRequest request) {
+        // 0. 약관 동의 검증
+        if (request.getTermsAgreed() == null || !request.getTermsAgreed()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "서비스 이용약관에 동의해야 합니다.");
+        }
+
         Long timeSlotId = request.getTimeSlotId();
         Long memberId = request.getMemberId();
         String holdToken = request.getHoldToken();
@@ -85,8 +90,19 @@ public class ReservationService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "예약 가능한 슬롯 상태가 아닙니다.");
         }
 
-        // 4. 인원 수 범위 검증
         Theme theme = timeSlot.getTheme();
+
+        // 3.5 연령 제한 검증
+        if (theme.getAgeLimit() != null && theme.getAgeLimit() > 0) {
+            if (member.getAccount() == null || member.getAccount().getAge() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "나이 정보가 필요합니다.");
+            }
+            if (member.getAccount().getAge() < theme.getAgeLimit()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "테마 이용 연령 제한 미달입니다.");
+            }
+        }
+
+        // 4. 인원 수 범위 검증
         if (peopleCount < theme.getMinPeople() || peopleCount > theme.getMaxPeople()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "인원 수 범위를 초과했습니다.");
         }
@@ -111,6 +127,7 @@ public class ReservationService {
                 .peopleCount(peopleCount)
                 .totalPrice(totalPrice)
                 .status(ReservationStatus.PENDING_PAYMENT)
+                .termsAgreedAt(LocalDateTime.now())
                 .build();
 
         Reservation savedReservation = reservationRepository.save(reservation);
