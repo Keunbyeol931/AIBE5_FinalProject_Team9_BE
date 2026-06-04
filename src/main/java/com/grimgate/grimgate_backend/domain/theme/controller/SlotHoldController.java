@@ -1,6 +1,5 @@
 package com.grimgate.grimgate_backend.domain.theme.controller;
 
-import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseResponse;
@@ -8,7 +7,7 @@ import com.grimgate.grimgate_backend.domain.theme.service.SlotHoldService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,15 +28,13 @@ public class SlotHoldController {
      * 특정 타임슬롯을 임시 선점(HOLD)합니다.
      *
      * @param timeSlotId 임시 선점할 타임슬롯 ID
-     * @param request    요청자 회원 정보 DTO
      * @return 임시 선점 결과 DTO
      */
-    @PostMapping("/{timeSlotId}/hold")
+    @PostMapping("/{id}/hold")
     public ResponseEntity<SlotHoldResponse> holdSlot(
-            @PathVariable("timeSlotId") Long timeSlotId,
-            @Valid @RequestBody SlotHoldRequest request
+            @PathVariable("id") Long timeSlotId
     ) {
-        SlotHoldResponse response = slotHoldService.holdSlot(timeSlotId, request);
+        SlotHoldResponse response = slotHoldService.holdSlot(timeSlotId);
         return ResponseEntity.ok(response);
     }
 
@@ -48,9 +45,9 @@ public class SlotHoldController {
      * @param request    선점 해제 요청 정보 DTO
      * @return 임시 선점 해제 결과 DTO
      */
-    @DeleteMapping("/{timeSlotId}/hold")
+    @PatchMapping("/{id}/release")
     public ResponseEntity<SlotReleaseResponse> releaseSlot(
-            @PathVariable("timeSlotId") Long timeSlotId,
+            @PathVariable("id") Long timeSlotId,
             @Valid @RequestBody SlotReleaseRequest request
     ) {
         SlotReleaseResponse response = slotHoldService.releaseSlot(timeSlotId, request);

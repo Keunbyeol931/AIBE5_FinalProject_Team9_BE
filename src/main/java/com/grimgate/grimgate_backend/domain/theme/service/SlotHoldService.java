@@ -1,12 +1,14 @@
 package com.grimgate.grimgate_backend.domain.theme.service;
 
-import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldRequest;
+import com.grimgate.grimgate_backend.domain.member.entity.Member;
+import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseResponse;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlot;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlotStatus;
 import com.grimgate.grimgate_backend.domain.theme.repository.TimeSlotRepository;
+import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.UUID;
@@ -29,6 +31,7 @@ public class SlotHoldService {
 
     private final TimeSlotRepository timeSlotRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    private final MemberRepository memberRepository;
 
     private static final RedisScript<Long> RELEASE_SCRIPT;
 
@@ -50,11 +53,15 @@ public class SlotHoldService {
      * 특정 타임슬롯을 5분 동안 임시 선점(HOLD)합니다.
      *
      * @param timeSlotId 임시 선점할 타임슬롯 ID
-     * @param request    요청자 회원 정보가 포함된 DTO
      * @return 임시 선점 결과 응답 DTO
      */
     @Transactional
-    public SlotHoldResponse holdSlot(Long timeSlotId, SlotHoldRequest request) {
+    public SlotHoldResponse holdSlot(Long timeSlotId) {
+        // SecurityContext에서 현재 로그인된 사용자의 accountId를 조회하여 Member 식별
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Member member = memberRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+
         // 1. timeSlotId로 TimeSlot 조회
         TimeSlot timeSlot = timeSlotRepository.findById(timeSlotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 슬롯입니다."));
@@ -67,7 +74,7 @@ public class SlotHoldService {
         // 3. UUID 기반 holdToken 생성
         String holdToken = UUID.randomUUID().toString();
         String key = "hold:slot:" + timeSlotId;
-        String value = request.getMemberId() + ":" + holdToken;
+        String value = member.getId() + ":" + holdToken;
 
         // 4. Redis에 setIfAbsent(key, value, Duration.ofMinutes(5))로 원자적으로 임시 선점 처리
         Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(key, value, Duration.ofMinutes(5));
@@ -90,13 +97,18 @@ public class SlotHoldService {
      * Redis에 저장된 HOLD 정보를 검증한 후 원자적으로 삭제합니다.
      *
      * @param timeSlotId 임시 선점 해제할 타임슬롯 ID
-     * @param request    선점 해제 요청 정보(memberId, holdToken) DTO
+     * @param request    선점 해제 요청 정보(holdToken) DTO
      * @return 임시 선점 해제 결과 응답 DTO
      */
     @Transactional
     public SlotReleaseResponse releaseSlot(Long timeSlotId, SlotReleaseRequest request) {
+        // SecurityContext에서 현재 로그인된 사용자의 accountId를 조회하여 Member 식별
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Member member = memberRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+
         String key = "hold:slot:" + timeSlotId;
-        String expectedValue = request.getMemberId() + ":" + request.getHoldToken();
+        String expectedValue = member.getId() + ":" + request.getHoldToken();
 
         // Lua Script 실행을 통한 Compare-And-Delete 원자적 처리
         Long result = stringRedisTemplate.execute(RELEASE_SCRIPT, Collections.singletonList(key), expectedValue);

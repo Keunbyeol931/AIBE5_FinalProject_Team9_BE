@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
+import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 
 @Slf4j
 @Service
@@ -61,8 +62,12 @@ public class ReservationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "서비스 이용약관에 동의해야 합니다.");
         }
 
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Member member = memberRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+        Long memberId = member.getId();
+
         Long timeSlotId = request.getTimeSlotId();
-        Long memberId = request.getMemberId();
         String holdToken = request.getHoldToken();
         int peopleCount = request.getPeopleCount();
 
@@ -77,10 +82,6 @@ public class ReservationService {
         if (!actualValue.equals(expectedValue)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "선점 정보가 일치하지 않습니다.");
         }
-
-        // 2. 회원 유효성 검증
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
 
         // 3. 타임슬롯 유효성 및 상태 검증
         TimeSlot timeSlot = timeSlotRepository.findById(timeSlotId)
