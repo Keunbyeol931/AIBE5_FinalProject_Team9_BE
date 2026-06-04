@@ -1,5 +1,6 @@
 package com.grimgate.grimgate_backend.domain.reservation.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,4 +31,8 @@ public class ReservationCreateRequest {
     @NotNull(message = "예약 인원은 필수입니다.")
     @Min(value = 1, message = "예약 인원은 최소 1명 이상이어야 합니다.")
     private Integer peopleCount;
+
+    @NotNull(message = "서비스 이용약관에 동의해야 합니다.")
+    @AssertTrue(message = "서비스 이용약관에 동의해야 합니다.")
+    private Boolean termsAgreed;
 }

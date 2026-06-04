@@ -70,6 +70,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(peopleCount)
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -99,6 +100,7 @@ class ReservationServiceTest {
                 .peopleCount(peopleCount)
                 .totalPrice(66000)
                 .status(ReservationStatus.PENDING_PAYMENT)
+                .termsAgreedAt(LocalDateTime.now())
                 .build();
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
@@ -138,6 +140,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -168,6 +171,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -200,6 +204,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -231,6 +236,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -265,6 +271,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -303,6 +310,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(6) // max가 5인 상황에서 6명 요청
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -350,6 +358,7 @@ class ReservationServiceTest {
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
+                .termsAgreed(true)
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
@@ -385,5 +394,227 @@ class ReservationServiceTest {
                     assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(statusEx.getReason()).isEqualTo("이미 다른 사용자가 선점 중이거나 예약이 완료된 슬롯입니다.");
                 });
+    }
+
+    @Test
+    @DisplayName("예약 생성 실패 - 약관 동의(termsAgreed)가 false인 경우 400 Bad Request 발생")
+    void createReservation_TermsAgreedFalse() {
+        // given
+        ReservationCreateRequest request = ReservationCreateRequest.builder()
+                .memberId(1L)
+                .timeSlotId(10L)
+                .holdToken("hold-token-123")
+                .peopleCount(3)
+                .termsAgreed(false)
+                .build();
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.createReservation(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(statusEx.getReason()).isEqualTo("서비스 이용약관에 동의해야 합니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 생성 실패 - 약관 동의(termsAgreed)가 null인 경우 400 Bad Request 발생")
+    void createReservation_TermsAgreedNull() {
+        // given
+        ReservationCreateRequest request = ReservationCreateRequest.builder()
+                .memberId(1L)
+                .timeSlotId(10L)
+                .holdToken("hold-token-123")
+                .peopleCount(3)
+                .termsAgreed(null)
+                .build();
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.createReservation(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(statusEx.getReason()).isEqualTo("서비스 이용약관에 동의해야 합니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 생성 실패 - 연령 제한이 있으나 회원의 나이 정보가 null인 경우 400 Bad Request 발생")
+    void createReservation_AccountAgeNull() {
+        // given
+        Long memberId = 1L;
+        Long timeSlotId = 10L;
+        String holdToken = "hold-token-123";
+        ReservationCreateRequest request = ReservationCreateRequest.builder()
+                .memberId(memberId)
+                .timeSlotId(timeSlotId)
+                .holdToken(holdToken)
+                .peopleCount(3)
+                .termsAgreed(true)
+                .build();
+
+        String redisKey = "hold:slot:" + timeSlotId;
+        String redisValue = memberId + ":" + holdToken;
+
+        Theme theme = Theme.builder()
+                .id(100L)
+                .ageLimit(15) // 연령 제한 15세
+                .minPeople(2)
+                .maxPeople(5)
+                .price(22000)
+                .build();
+
+        TimeSlot timeSlot = TimeSlot.builder()
+                .id(timeSlotId)
+                .theme(theme)
+                .status(TimeSlotStatus.SLOT_AVAILABLE)
+                .build();
+
+        com.grimgate.grimgate_backend.domain.account.entity.Account account = 
+                com.grimgate.grimgate_backend.domain.account.entity.Account.builder()
+                        .age(null) // 나이 정보 null
+                        .build();
+
+        Member member = Member.builder()
+                .id(memberId)
+                .account(account)
+                .build();
+
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(redisKey)).thenReturn(redisValue);
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.createReservation(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(statusEx.getReason()).isEqualTo("나이 정보가 필요합니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 생성 실패 - 회원의 나이가 테마 이용 연령 제한 미달인 경우 400 Bad Request 발생")
+    void createReservation_UnderAgeLimit() {
+        // given
+        Long memberId = 1L;
+        Long timeSlotId = 10L;
+        String holdToken = "hold-token-123";
+        ReservationCreateRequest request = ReservationCreateRequest.builder()
+                .memberId(memberId)
+                .timeSlotId(timeSlotId)
+                .holdToken(holdToken)
+                .peopleCount(3)
+                .termsAgreed(true)
+                .build();
+
+        String redisKey = "hold:slot:" + timeSlotId;
+        String redisValue = memberId + ":" + holdToken;
+
+        Theme theme = Theme.builder()
+                .id(100L)
+                .ageLimit(19) // 연령 제한 19세
+                .minPeople(2)
+                .maxPeople(5)
+                .price(22000)
+                .build();
+
+        TimeSlot timeSlot = TimeSlot.builder()
+                .id(timeSlotId)
+                .theme(theme)
+                .status(TimeSlotStatus.SLOT_AVAILABLE)
+                .build();
+
+        com.grimgate.grimgate_backend.domain.account.entity.Account account = 
+                com.grimgate.grimgate_backend.domain.account.entity.Account.builder()
+                        .age(17) // 17세 (제한 미달)
+                        .build();
+
+        Member member = Member.builder()
+                .id(memberId)
+                .account(account)
+                .build();
+
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(redisKey)).thenReturn(redisValue);
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.createReservation(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(statusEx.getReason()).isEqualTo("테마 이용 연령 제한 미달입니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 생성 성공 - 테마 연령 제한이 0 또는 null인 경우 연령 검증을 통과하고 성공한다")
+    void createReservation_NoAgeLimit_Success() {
+        // given
+        Long memberId = 1L;
+        Long timeSlotId = 10L;
+        String holdToken = "hold-token-123";
+        ReservationCreateRequest request = ReservationCreateRequest.builder()
+                .memberId(memberId)
+                .timeSlotId(timeSlotId)
+                .holdToken(holdToken)
+                .peopleCount(3)
+                .termsAgreed(true)
+                .build();
+
+        String redisKey = "hold:slot:" + timeSlotId;
+        String redisValue = memberId + ":" + holdToken;
+
+        Theme theme = Theme.builder()
+                .id(100L)
+                .ageLimit(0) // 연령 제한 없음 (0)
+                .minPeople(2)
+                .maxPeople(5)
+                .price(22000)
+                .build();
+
+        TimeSlot timeSlot = TimeSlot.builder()
+                .id(timeSlotId)
+                .theme(theme)
+                .status(TimeSlotStatus.SLOT_AVAILABLE)
+                .build();
+
+        Member member = Member.builder()
+                .id(memberId)
+                .build(); // account가 null이어도 통과해야 함
+
+        Reservation savedReservation = Reservation.builder()
+                .id(50L)
+                .timeSlot(timeSlot)
+                .member(member)
+                .peopleCount(3)
+                .totalPrice(66000)
+                .status(ReservationStatus.PENDING_PAYMENT)
+                .termsAgreedAt(LocalDateTime.now())
+                .build();
+
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(redisKey)).thenReturn(redisValue);
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
+        when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_HELD), eq(TimeSlotStatus.SLOT_AVAILABLE), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+        when(stringRedisTemplate.execute(any(RedisScript.class), anyList(), any())).thenReturn(1L);
+
+        // when
+        ReservationCreateResponse response = reservationService.createReservation(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getReservationId()).isEqualTo(50L);
+        assertThat(response.getStatus()).isEqualTo("PENDING_PAYMENT");
     }
 }
