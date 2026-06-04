@@ -63,3 +63,4 @@ server_log.txt
 
 # Claude Code
 CLAUDE.md
+.claude/settings.local.json

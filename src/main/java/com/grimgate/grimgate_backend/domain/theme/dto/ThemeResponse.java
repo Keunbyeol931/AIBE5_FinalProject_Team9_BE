@@ -1,5 +1,6 @@
 package com.grimgate.grimgate_backend.domain.theme.dto;
 
+import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -17,6 +18,25 @@ public class ThemeResponse {
     private Integer reviewCount;
     private Integer minPeople;
     private Integer maxPeople;
+    private String tags;
     private Integer playTime;
     private String description;
+
+    public static ThemeResponse from(Theme theme) {
+        return new ThemeResponse(
+                theme.getId(),
+                theme.getThumbnailUrl(),
+                theme.getBranch().getBranchName(), // Branch에서 name 꺼내기
+                theme.getTitle(),
+                theme.getDifficulty(),
+                theme.getHorrorLevel(),
+                theme.getRating(),
+                theme.getReviewCount(),
+                theme.getMinPeople(),
+                theme.getMaxPeople(),
+                theme.getTags(),
+                theme.getPlayTime(),
+                theme.getDescription()
+        );
+    }
 }

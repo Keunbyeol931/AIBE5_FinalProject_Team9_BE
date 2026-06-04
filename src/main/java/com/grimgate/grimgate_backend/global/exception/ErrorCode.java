@@ -24,7 +24,7 @@ public enum ErrorCode {
     REVOKED_TOKEN(HttpStatus.UNAUTHORIZED, "이미 로그아웃된 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "리프레시 토큰을 찾을 수 없습니다."),
 
-    // 회원/역할
+    // 회원/역할INVALID_TOKEN
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "멤버 정보를 찾을 수 없습니다."),
     MANAGER_NOT_FOUND(HttpStatus.NOT_FOUND, "매니저 정보를 찾을 수 없습니다."),
     INVALID_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 역할입니다."),
@@ -44,6 +44,7 @@ public enum ErrorCode {
     MATE_POST_INVALID_DEADLINE(HttpStatus.BAD_REQUEST, "마감일은 모임 시간보다 늦을 수 없습니다."),
     MATE_POST_INVALID_MEETING_TIME(HttpStatus.BAD_REQUEST, "모임 시간은 현재 이후여야 합니다."),
     MATE_POST_INVALID_OPEN_CHAT_URL(HttpStatus.BAD_REQUEST, "카카오 오픈채팅 URL 형식이 올바르지 않습니다.");
+    INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST,"최소 인원은 최대 인원보다 클 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
