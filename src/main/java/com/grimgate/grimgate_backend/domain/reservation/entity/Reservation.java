@@ -53,4 +53,7 @@ public class Reservation extends BaseTimeEntity {
 
     @Column(name = "terms_agreed_at", nullable = false)
     private LocalDateTime termsAgreedAt;
+
+    @Column(name = "is_cleared")
+    private Boolean isCleared;
 }
