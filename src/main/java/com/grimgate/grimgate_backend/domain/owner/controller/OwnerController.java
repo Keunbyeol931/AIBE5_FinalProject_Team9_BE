@@ -1,11 +1,18 @@
 package com.grimgate.grimgate_backend.domain.owner.controller;
 
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 import com.grimgate.grimgate_backend.domain.owner.service.OwnerService;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
+import com.grimgate.grimgate_backend.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,5 +51,18 @@ public class OwnerController {
     public ResponseEntity<Void> deleteTheme(@PathVariable Long themeId) {
         ownerService.deleteTheme(themeId);
         return ResponseEntity.ok().build();
+    }
+
+    //예약 목록 검색
+    @GetMapping("/reservations")
+    public ResponseEntity<ApiResponse<Page<OwnerReservationResponse>>> searchReservations(
+            @ModelAttribute OwnerReservationSearchRequest request,
+            @PageableDefault(
+                    sort = {"timeSlot.slotDate", "timeSlot.startTime"},
+                    direction = Sort.Direction.ASC
+            ) Pageable pageable
+    ) {
+        Page<OwnerReservationResponse> response = ownerService.searchReservations(request, pageable);
+        return ResponseEntity.ok(ApiResponse.success("예약 목록 조회가 완료되었습니다.", response));
     }
 }
