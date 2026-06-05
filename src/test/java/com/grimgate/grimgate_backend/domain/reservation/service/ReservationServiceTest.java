@@ -23,16 +23,22 @@ import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlotStatus;
 import com.grimgate.grimgate_backend.domain.theme.repository.TimeSlotRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,6 +62,29 @@ class ReservationServiceTest {
     @InjectMocks
     private ReservationService reservationService;
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private Member setupSecurityContextAndMember(Long accountId, Member member) {
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        UserDetails userDetails = Mockito.mock(UserDetails.class);
+
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.when(authentication.isAuthenticated()).thenReturn(true);
+        Mockito.when(authentication.getPrincipal()).thenReturn(userDetails);
+        Mockito.when(userDetails.getUsername()).thenReturn(String.valueOf(accountId));
+
+        SecurityContextHolder.setContext(securityContext);
+
+        Mockito.when(memberRepository.findByAccount_Id(accountId))
+                .thenReturn(Optional.of(member));
+
+        return member;
+    }
+
     @Test
     @DisplayName("예약 생성 성공 - 모든 검증을 통과하고 예약이 PENDING_PAYMENT 상태로 저장된다")
     void createReservation_Success() {
@@ -66,7 +95,6 @@ class ReservationServiceTest {
         int peopleCount = 3;
 
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(peopleCount)
@@ -92,6 +120,7 @@ class ReservationServiceTest {
         Member member = Member.builder()
                 .id(memberId)
                 .build();
+        setupSecurityContextAndMember(200L, member);
 
         Reservation savedReservation = Reservation.builder()
                 .id(50L)
@@ -105,7 +134,6 @@ class ReservationServiceTest {
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
         when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_HELD), eq(TimeSlotStatus.SLOT_AVAILABLE), any(LocalDateTime.class)))
                 .thenReturn(1);
@@ -136,7 +164,6 @@ class ReservationServiceTest {
         Long memberId = 1L;
         Long timeSlotId = 10L;
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
@@ -144,6 +171,7 @@ class ReservationServiceTest {
                 .build();
 
         String redisKey = "hold:slot:" + timeSlotId;
+        setupSecurityContextAndMember(200L, Member.builder().id(memberId).build());
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(null);
@@ -167,7 +195,6 @@ class ReservationServiceTest {
         Long memberId = 1L;
         Long timeSlotId = 10L;
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
@@ -176,6 +203,7 @@ class ReservationServiceTest {
 
         String redisKey = "hold:slot:" + timeSlotId;
         String redisValue = memberId + ":different-token";
+        setupSecurityContextAndMember(200L, Member.builder().id(memberId).build());
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
@@ -200,7 +228,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
@@ -210,9 +237,17 @@ class ReservationServiceTest {
         String redisKey = "hold:slot:" + timeSlotId;
         String redisValue = memberId + ":" + holdToken;
 
-        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.empty());
+        // SecurityContext 직접 모킹 (Member empty 반환)
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        UserDetails userDetails = Mockito.mock(UserDetails.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn(userDetails);
+        when(userDetails.getUsername()).thenReturn("200");
+        SecurityContextHolder.setContext(securityContext);
+
+        when(memberRepository.findByAccount_Id(200L)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> reservationService.createReservation(request))
@@ -232,7 +267,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
@@ -243,10 +277,10 @@ class ReservationServiceTest {
         String redisValue = memberId + ":" + holdToken;
 
         Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.empty());
 
         // when & then
@@ -267,7 +301,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
@@ -278,6 +311,8 @@ class ReservationServiceTest {
         String redisValue = memberId + ":" + holdToken;
 
         Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
         TimeSlot timeSlot = TimeSlot.builder()
                 .id(timeSlotId)
                 .status(TimeSlotStatus.SLOT_HELD)
@@ -285,7 +320,6 @@ class ReservationServiceTest {
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
 
         // when & then
@@ -306,7 +340,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(6) // max가 5인 상황에서 6명 요청
@@ -330,10 +363,10 @@ class ReservationServiceTest {
                 .build();
 
         Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
 
         // when & then
@@ -354,7 +387,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
@@ -378,10 +410,10 @@ class ReservationServiceTest {
                 .build();
 
         Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
         when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_HELD), eq(TimeSlotStatus.SLOT_AVAILABLE), any(LocalDateTime.class)))
                 .thenReturn(0); // 0개 행 업데이트됨
@@ -401,7 +433,6 @@ class ReservationServiceTest {
     void createReservation_TermsAgreedFalse() {
         // given
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(1L)
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
@@ -423,7 +454,6 @@ class ReservationServiceTest {
     void createReservation_TermsAgreedNull() {
         // given
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(1L)
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
@@ -448,7 +478,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
@@ -481,10 +510,10 @@ class ReservationServiceTest {
                 .id(memberId)
                 .account(account)
                 .build();
+        setupSecurityContextAndMember(200L, member);
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
 
         // when & then
@@ -505,7 +534,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
@@ -538,10 +566,10 @@ class ReservationServiceTest {
                 .id(memberId)
                 .account(account)
                 .build();
+        setupSecurityContextAndMember(200L, member);
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
 
         // when & then
@@ -562,7 +590,6 @@ class ReservationServiceTest {
         Long timeSlotId = 10L;
         String holdToken = "hold-token-123";
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(memberId)
                 .timeSlotId(timeSlotId)
                 .holdToken(holdToken)
                 .peopleCount(3)
@@ -589,6 +616,7 @@ class ReservationServiceTest {
         Member member = Member.builder()
                 .id(memberId)
                 .build(); // account가 null이어도 통과해야 함
+        setupSecurityContextAndMember(200L, member);
 
         Reservation savedReservation = Reservation.builder()
                 .id(50L)
@@ -602,7 +630,6 @@ class ReservationServiceTest {
 
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get(redisKey)).thenReturn(redisValue);
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
         when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_HELD), eq(TimeSlotStatus.SLOT_AVAILABLE), any(LocalDateTime.class)))
                 .thenReturn(1);

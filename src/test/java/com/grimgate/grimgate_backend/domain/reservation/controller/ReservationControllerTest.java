@@ -43,7 +43,6 @@ class ReservationControllerTest {
     void createReservation_Success() throws Exception {
         // given
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(1L)
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
@@ -80,7 +79,7 @@ class ReservationControllerTest {
     void createReservation_InvalidInput() throws Exception {
         // given
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                // memberId, timeSlotId 누락
+                // timeSlotId 누락
                 .holdToken("")
                 .peopleCount(0) // 1 미만
                 .build();
@@ -97,7 +96,6 @@ class ReservationControllerTest {
     void createReservation_NotFoundException() throws Exception {
         // given
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(1L)
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)
@@ -119,7 +117,6 @@ class ReservationControllerTest {
     void createReservation_ConflictException() throws Exception {
         // given
         ReservationCreateRequest request = ReservationCreateRequest.builder()
-                .memberId(1L)
                 .timeSlotId(10L)
                 .holdToken("hold-token-123")
                 .peopleCount(3)

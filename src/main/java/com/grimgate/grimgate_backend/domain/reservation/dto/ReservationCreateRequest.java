@@ -19,9 +19,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ReservationCreateRequest {
 
-    @NotNull(message = "회원 ID는 필수입니다.")
-    private Long memberId;
-
     @NotNull(message = "타임슬롯 ID는 필수입니다.")
     private Long timeSlotId;
 
