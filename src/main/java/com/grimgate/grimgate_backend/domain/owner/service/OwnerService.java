@@ -9,11 +9,16 @@ import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.BranchRepository;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
+import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +31,7 @@ public class OwnerService {
     private final ThemeRepository themeRepository;
     private final BranchRepository branchRepository;
     private final ManagerRepository managerRepository;
+    private final ReservationRepository reservationRepository;
 
     // 사장님 테마 관리 목록
     public List<ThemeResponse> getOwnerThemes(Long branchId) {
@@ -129,5 +135,26 @@ public class OwnerService {
                 .collect(Collectors.toList());
     }
 
+    // 사장님 예약 목록 검색
+    @Transactional(readOnly = true)
+    public Page<OwnerReservationResponse> searchReservations(
+            OwnerReservationSearchRequest request,
+            Pageable pageable
+    ) {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Manager manager = managerRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
+        Branch branch = branchRepository.findByManagerId(manager.getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.BRANCH_NOT_FOUND));
 
+        return reservationRepository.findReservationsByBranchAndFilters(
+                branch.getId(),
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getThemeId(),
+                request.getNickname(),
+                request.getStatus(),
+                pageable
+        ).map(OwnerReservationResponse::from);
+    }
 }

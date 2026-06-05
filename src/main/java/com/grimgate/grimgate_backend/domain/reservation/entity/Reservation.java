@@ -15,6 +15,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -56,4 +57,7 @@ public class Reservation extends BaseTimeEntity {
 
     @Column(name = "is_cleared")
     private Boolean isCleared;
+
+    @Column(name = "clear_time")
+    private LocalTime clearTime;
 }
