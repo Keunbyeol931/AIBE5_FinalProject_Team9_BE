@@ -8,7 +8,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldRequest;
+import com.grimgate.grimgate_backend.domain.member.entity.Member;
+import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseResponse;
@@ -18,16 +19,22 @@ import com.grimgate.grimgate_backend.domain.theme.repository.TimeSlotRepository;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -45,18 +52,45 @@ class SlotHoldServiceTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
+    @Mock
+    private MemberRepository memberRepository;
+
     @InjectMocks
     private SlotHoldService slotHoldService;
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private Member setupSecurityContextAndMember(Long accountId, Long memberId) {
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        UserDetails userDetails = Mockito.mock(UserDetails.class);
+
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.when(authentication.isAuthenticated()).thenReturn(true);
+        Mockito.when(authentication.getPrincipal()).thenReturn(userDetails);
+        Mockito.when(userDetails.getUsername()).thenReturn(String.valueOf(accountId));
+
+        SecurityContextHolder.setContext(securityContext);
+
+        Member member = Member.builder()
+                .id(memberId)
+                .build();
+
+        Mockito.when(memberRepository.findByAccount_Id(accountId))
+                .thenReturn(Optional.of(member));
+
+        return member;
+    }
 
     @Test
     @DisplayName("HOLD 성공 - 슬롯이 존재하고 AVAILABLE 상태이며 Redis 선점에 성공한 경우 holdToken과 300초 만료 시간을 반환해야 한다")
     void holdSlot_Success() {
         // given
         Long timeSlotId = 1L;
-        Long memberId = 100L;
-        SlotHoldRequest request = SlotHoldRequest.builder()
-                .memberId(memberId)
-                .build();
+        setupSecurityContextAndMember(200L, 100L);
 
         TimeSlot timeSlot = TimeSlot.builder()
                 .id(timeSlotId)
@@ -69,7 +103,7 @@ class SlotHoldServiceTest {
                 .thenReturn(true);
 
         // when
-        SlotHoldResponse response = slotHoldService.holdSlot(timeSlotId, request);
+        SlotHoldResponse response = slotHoldService.holdSlot(timeSlotId);
 
         // then
         assertThat(response).isNotNull();
@@ -86,14 +120,12 @@ class SlotHoldServiceTest {
     void holdSlot_TimeSlotNotFound() {
         // given
         Long timeSlotId = 1L;
-        SlotHoldRequest request = SlotHoldRequest.builder()
-                .memberId(100L)
-                .build();
+        setupSecurityContextAndMember(200L, 100L);
 
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId, request))
+        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     ResponseStatusException responseStatusEx = (ResponseStatusException) ex;
@@ -107,9 +139,7 @@ class SlotHoldServiceTest {
     void holdSlot_NotAvailableStatus() {
         // given
         Long timeSlotId = 1L;
-        SlotHoldRequest request = SlotHoldRequest.builder()
-                .memberId(100L)
-                .build();
+        setupSecurityContextAndMember(200L, 100L);
 
         TimeSlot timeSlot = TimeSlot.builder()
                 .id(timeSlotId)
@@ -119,7 +149,7 @@ class SlotHoldServiceTest {
         when(timeSlotRepository.findById(timeSlotId)).thenReturn(Optional.of(timeSlot));
 
         // when & then
-        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId, request))
+        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     ResponseStatusException responseStatusEx = (ResponseStatusException) ex;
@@ -133,9 +163,7 @@ class SlotHoldServiceTest {
     void holdSlot_RedisSetIfAbsentFalse() {
         // given
         Long timeSlotId = 1L;
-        SlotHoldRequest request = SlotHoldRequest.builder()
-                .memberId(100L)
-                .build();
+        setupSecurityContextAndMember(200L, 100L);
 
         TimeSlot timeSlot = TimeSlot.builder()
                 .id(timeSlotId)
@@ -148,7 +176,7 @@ class SlotHoldServiceTest {
                 .thenReturn(false);
 
         // when & then
-        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId, request))
+        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     ResponseStatusException responseStatusEx = (ResponseStatusException) ex;
@@ -162,9 +190,7 @@ class SlotHoldServiceTest {
     void holdSlot_RedisSetIfAbsentNull() {
         // given
         Long timeSlotId = 1L;
-        SlotHoldRequest request = SlotHoldRequest.builder()
-                .memberId(100L)
-                .build();
+        setupSecurityContextAndMember(200L, 100L);
 
         TimeSlot timeSlot = TimeSlot.builder()
                 .id(timeSlotId)
@@ -177,7 +203,7 @@ class SlotHoldServiceTest {
                 .thenReturn(null);
 
         // when & then
-        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId, request))
+        assertThatThrownBy(() -> slotHoldService.holdSlot(timeSlotId))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     ResponseStatusException responseStatusEx = (ResponseStatusException) ex;
@@ -191,10 +217,9 @@ class SlotHoldServiceTest {
     void releaseSlot_Success() {
         // given
         Long timeSlotId = 1L;
-        Long memberId = 100L;
+        setupSecurityContextAndMember(200L, 100L);
         String holdToken = "some-token";
         SlotReleaseRequest request = SlotReleaseRequest.builder()
-                .memberId(memberId)
                 .holdToken(holdToken)
                 .build();
 
@@ -217,8 +242,8 @@ class SlotHoldServiceTest {
     void releaseSlot_NotFound() {
         // given
         Long timeSlotId = 1L;
+        setupSecurityContextAndMember(200L, 100L);
         SlotReleaseRequest request = SlotReleaseRequest.builder()
-                .memberId(100L)
                 .holdToken("some-token")
                 .build();
 
@@ -240,8 +265,8 @@ class SlotHoldServiceTest {
     void releaseSlot_Conflict() {
         // given
         Long timeSlotId = 1L;
+        setupSecurityContextAndMember(200L, 100L);
         SlotReleaseRequest request = SlotReleaseRequest.builder()
-                .memberId(100L)
                 .holdToken("some-token")
                 .build();
 

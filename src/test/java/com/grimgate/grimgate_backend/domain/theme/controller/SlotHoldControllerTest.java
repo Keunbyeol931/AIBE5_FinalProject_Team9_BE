@@ -3,13 +3,12 @@ package com.grimgate.grimgate_backend.domain.theme.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotHoldResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.SlotReleaseResponse;
@@ -43,24 +42,19 @@ class SlotHoldControllerTest {
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
-    @DisplayName("POST /api/slots/{timeSlotId}/hold - 슬롯 HOLD 성공")
+    @DisplayName("POST /api/slots/{id}/hold - 슬롯 HOLD 성공")
     void holdSlot_Success() throws Exception {
         Long timeSlotId = 1L;
-        SlotHoldRequest request = SlotHoldRequest.builder()
-                .memberId(100L)
-                .build();
         SlotHoldResponse response = SlotHoldResponse.builder()
                 .timeSlotId(timeSlotId)
                 .holdToken("hold-token-xyz")
                 .expiresInSeconds(300L)
                 .build();
 
-        when(slotHoldService.holdSlot(eq(timeSlotId), any(SlotHoldRequest.class)))
+        when(slotHoldService.holdSlot(eq(timeSlotId)))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/api/slots/{timeSlotId}/hold", timeSlotId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(post("/api/slots/{id}/hold", timeSlotId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.timeSlotId").value(timeSlotId))
                 .andExpect(jsonPath("$.holdToken").value("hold-token-xyz"))
@@ -68,11 +62,10 @@ class SlotHoldControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/slots/{timeSlotId}/hold - 슬롯 HOLD 해제 성공")
+    @DisplayName("PATCH /api/slots/{id}/release - 슬롯 HOLD 해제 성공")
     void releaseSlot_Success() throws Exception {
         Long timeSlotId = 1L;
         SlotReleaseRequest request = SlotReleaseRequest.builder()
-                .memberId(100L)
                 .holdToken("hold-token-xyz")
                 .build();
         SlotReleaseResponse response = SlotReleaseResponse.builder()
@@ -83,7 +76,7 @@ class SlotHoldControllerTest {
         when(slotHoldService.releaseSlot(eq(timeSlotId), any(SlotReleaseRequest.class)))
                 .thenReturn(response);
 
-        mockMvc.perform(delete("/api/slots/{timeSlotId}/hold", timeSlotId)
+        mockMvc.perform(patch("/api/slots/{id}/release", timeSlotId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -92,36 +85,34 @@ class SlotHoldControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/slots/{timeSlotId}/hold - 선점 정보가 존재하지 않아 404 에러 반환")
+    @DisplayName("PATCH /api/slots/{id}/release - 선점 정보가 존재하지 않아 404 에러 반환")
     void releaseSlot_NotFound() throws Exception {
         Long timeSlotId = 1L;
         SlotReleaseRequest request = SlotReleaseRequest.builder()
-                .memberId(100L)
                 .holdToken("hold-token-xyz")
                 .build();
 
         when(slotHoldService.releaseSlot(eq(timeSlotId), any(SlotReleaseRequest.class)))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "선점 정보가 존재하지 않습니다."));
 
-        mockMvc.perform(delete("/api/slots/{timeSlotId}/hold", timeSlotId)
+        mockMvc.perform(patch("/api/slots/{id}/release", timeSlotId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("DELETE /api/slots/{timeSlotId}/hold - 선점 정보가 일치하지 않아 409 에러 반환")
+    @DisplayName("PATCH /api/slots/{id}/release - 선점 정보가 일치하지 않아 409 에러 반환")
     void releaseSlot_Conflict() throws Exception {
         Long timeSlotId = 1L;
         SlotReleaseRequest request = SlotReleaseRequest.builder()
-                .memberId(100L)
                 .holdToken("wrong-token")
                 .build();
 
         when(slotHoldService.releaseSlot(eq(timeSlotId), any(SlotReleaseRequest.class)))
                 .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "선점 정보가 일치하지 않습니다."));
 
-        mockMvc.perform(delete("/api/slots/{timeSlotId}/hold", timeSlotId)
+        mockMvc.perform(patch("/api/slots/{id}/release", timeSlotId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
