@@ -250,4 +250,9 @@ public class Theme {
         if (request.getPrice() != null) this.price = request.getPrice();
         if (request.getThumbnailUrl() != null) this.thumbnailUrl = request.getThumbnailUrl();
     }
+
+    public void updateRating(double rating, int reviewCount) {
+        this.rating = rating;
+        this.reviewCount = reviewCount;
+    }
 }

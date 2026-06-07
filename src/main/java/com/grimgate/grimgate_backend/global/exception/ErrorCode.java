@@ -24,7 +24,7 @@ public enum ErrorCode {
     REVOKED_TOKEN(HttpStatus.UNAUTHORIZED, "이미 로그아웃된 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "리프레시 토큰을 찾을 수 없습니다."),
 
-    // 회원/역할INVALID_TOKEN
+    // 회원/역할
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "멤버 정보를 찾을 수 없습니다."),
     MANAGER_NOT_FOUND(HttpStatus.NOT_FOUND, "매니저 정보를 찾을 수 없습니다."),
     INVALID_ROLE(HttpStatus.BAD_REQUEST, "유효하지 않은 역할입니다."),
@@ -32,6 +32,14 @@ public enum ErrorCode {
     // 프로필/마이페이지
     PROFILE_CHARACTER_NOT_FOUND(HttpStatus.NOT_FOUND, "프로필 캐릭터를 찾을 수 없습니다."),
     TITLE_NOT_FOUND(HttpStatus.NOT_FOUND, "칭호를 찾을 수 없습니다."),
+
+    //마이페이지 후기
+    RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "예약을 찾을 수 없습니다."),
+    RESERVATION_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "완료된 예약만 후기 작성이 가능합니다."),
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 후기를 작성한 예약입니다."),
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "후기를 찾을 수 없습니다."),
+    REVIEW_NOT_OWNER(HttpStatus.FORBIDDEN, "본인의 후기만 수정/삭제할 수 있습니다."),
+    IMAGE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지는 최대 3장까지 등록 가능합니다."),
 
     // 지점/테마 (사장님 페이지)
     BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, "지점을 찾을 수 없습니다."),

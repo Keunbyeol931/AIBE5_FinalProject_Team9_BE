@@ -9,7 +9,7 @@ import java.util.Map;
 
 @Getter
 public class ReviewTabResponse extends TabCommonResponse {
-    private double averageRating;  // theme.getRating()
+    private double averageRating;  // 후기 탭용
     private List<ReviewResponse> reviews;  // 기존 ReviewResponse 재사용
     private Map<Integer, Integer> ratingDistribution; // 별점 분포도
 

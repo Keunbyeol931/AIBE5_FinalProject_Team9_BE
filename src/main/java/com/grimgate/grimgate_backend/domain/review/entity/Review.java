@@ -2,6 +2,8 @@ package com.grimgate.grimgate_backend.domain.review.entity;
 
 
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
+import com.grimgate.grimgate_backend.domain.review.dto.ReviewCreateRequest;
+import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import jakarta.persistence.*;
@@ -37,6 +39,7 @@ public class Review {
     private Reservation reservation;
 
     @Column(nullable = false)
+
     private Integer rating;
 
     @Column(name = "horror_rating")
@@ -54,7 +57,7 @@ public class Review {
     @Column(nullable = false)
     private String status;
 
-    private Boolean spoiler;
+    private Boolean spoiler = false;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -67,5 +70,29 @@ public class Review {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    public static Review create(Member member, Theme theme, Reservation reservation, ReviewCreateRequest request){
+        Review review = new Review();
+        review.member = member;
+        review.theme = theme;
+        review.reservation = reservation;
+        review.rating = request.getRating();
+        review.horrorRating = request.getHorrorRating();
+        review.difficultyRating = request.getDifficultyRating();
+        review.content = request.getContent();
+        review.tags = request.getTags();
+        review.content = request.getContent();
+        Boolean spoiler = request.getSpoiler();
+        review.status = "ACTIVE";
+        return review;
 
+    }
+
+    public void update(ReviewUpdateRequest request) {
+        this.rating = request.getRating();
+        this.horrorRating = request.getHorrorRating();
+        this.difficultyRating = request.getDifficultyRating();
+        this.content = request.getContent();
+        this.tags = request.getTags();
+        this.spoiler = request.getSpoiler();
+    }
 }
