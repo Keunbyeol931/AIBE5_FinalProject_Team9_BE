@@ -15,8 +15,15 @@ import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.BranchRepository;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
+import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsResponse;
+import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationStatsProjection;
+import java.time.LocalDate;
 
 import com.grimgate.grimgate_backend.global.exception.CustomException;
+
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -171,4 +178,32 @@ public class OwnerService {
                 pageable
         ).map(OwnerReservationResponse::from);
     }
+
+    // 사장님 예약 요약 통계 조회
+    @Transactional(readOnly = true)
+    public OwnerReservationStatsResponse getReservationStats(LocalDate startDate, LocalDate endDate) {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Manager manager = managerRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
+        Branch branch = branchRepository.findByManagerId(manager.getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.BRANCH_NOT_FOUND));
+
+        LocalDate today = LocalDate.now();
+
+        ReservationStatsProjection projection = reservationRepository.findReservationStats(
+                branch.getId(),
+                startDate,
+                endDate,
+                today
+        );
+
+        return OwnerReservationStatsResponse.builder()
+                .totalCount(projection.getTotalCount())
+                .todayCount(projection.getTodayCount())
+                .completedCount(projection.getCompletedCount())
+                .confirmedCount(projection.getConfirmedCount())
+                .cancelledCount(projection.getCancelledCount())
+                .build();
+    }
 }
+

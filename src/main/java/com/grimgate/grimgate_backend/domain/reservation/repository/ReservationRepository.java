@@ -56,4 +56,22 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("status") ReservationStatus status,
             Pageable pageable
     );
+
+    @Query("SELECT " +
+            "COUNT(r) as totalCount, " +
+            "COALESCE(SUM(CASE WHEN r.timeSlot.slotDate = :today THEN 1 ELSE 0 END), 0) as todayCount, " +
+            "COALESCE(SUM(CASE WHEN r.status = com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus.COMPLETED THEN 1 ELSE 0 END), 0) as completedCount, " +
+            "COALESCE(SUM(CASE WHEN r.status = com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus.CONFIRMED THEN 1 ELSE 0 END), 0) as confirmedCount, " +
+            "COALESCE(SUM(CASE WHEN r.status = com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus.CANCELLED THEN 1 ELSE 0 END), 0) as cancelledCount " +
+            "FROM Reservation r " +
+            "WHERE r.timeSlot.theme.branch.id = :branchId " +
+            "AND (:startDate IS NULL OR r.timeSlot.slotDate >= :startDate) " +
+            "AND (:endDate IS NULL OR r.timeSlot.slotDate <= :endDate)")
+    ReservationStatsProjection findReservationStats(
+            @Param("branchId") Long branchId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("today") LocalDate today
+    );
 }
+
