@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsResponse;
+
 import com.grimgate.grimgate_backend.domain.owner.service.OwnerService;
 import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -76,5 +78,37 @@ class OwnerControllerTest {
                 .andExpect(jsonPath("$.data.content[0].themeTitle").value("탈출하라"))
                 .andExpect(jsonPath("$.data.content[0].nickname").value("도전자"))
                 .andExpect(jsonPath("$.data.content[0].escapeResult").value("성공 (42:10)"));
+     }
+
+    @Test
+    @DisplayName("GET /api/owner/reservations/stats - 예약 통계 조회 API 성공 시 200 OK와 통계 정보 반환")
+    void getReservationStats_Success() throws Exception {
+        // given
+        OwnerReservationStatsResponse responseDto = OwnerReservationStatsResponse.builder()
+                .totalCount(10L)
+                .todayCount(2L)
+                .completedCount(5L)
+                .confirmedCount(3L)
+                .cancelledCount(2L)
+                .build();
+
+        // date_from, date_to 파라미터가 null일 수 있는 것을 대비하여, mock에 flexible argument matching 지정
+        when(ownerService.getReservationStats(any(), any()))
+                .thenReturn(responseDto);
+
+        // when & then
+        mockMvc.perform(get("/api/owner/reservations/stats")
+                        .param("date_from", "2026-06-01")
+                        .param("date_to", "2026-06-30")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("예약 통계 조회가 완료되었습니다."))
+                .andExpect(jsonPath("$.data.total_count").value(10))
+                .andExpect(jsonPath("$.data.today_count").value(2))
+                .andExpect(jsonPath("$.data.completed_count").value(5))
+                .andExpect(jsonPath("$.data.confirmed_count").value(3))
+                .andExpect(jsonPath("$.data.cancelled_count").value(2));
     }
 }
+
