@@ -11,6 +11,7 @@ import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,9 @@ public class MateParticipantService {
         }
         if (!post.isRecruitable()) {
             throw new CustomException(ErrorCode.MATE_PARTICIPANT_NOT_RECRUITING);
+        }
+        if (post.getDeadline() != null && post.getDeadline().isBefore(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.MATE_PARTICIPANT_DEADLINE_PASSED);
         }
         if (post.getCurrentPeople() >= post.getMaxPeople()) {
             throw new CustomException(ErrorCode.MATE_PARTICIPANT_FULL);

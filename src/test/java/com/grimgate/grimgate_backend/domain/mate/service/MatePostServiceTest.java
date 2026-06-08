@@ -14,6 +14,7 @@ import com.grimgate.grimgate_backend.domain.mate.dto.MatePostUpdateRequest;
 import com.grimgate.grimgate_backend.domain.mate.entity.ExperienceLevel;
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePost;
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePostStatus;
+import com.grimgate.grimgate_backend.domain.mate.repository.MateParticipantRepository;
 import com.grimgate.grimgate_backend.domain.mate.repository.MatePostRepository;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
@@ -47,6 +48,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MatePostServiceTest {
 
     @Mock private MatePostRepository matePostRepository;
+    @Mock private MateParticipantRepository participantRepository;
     @Mock private MemberRepository memberRepository;
     @Mock private ThemeRepository themeRepository;
 

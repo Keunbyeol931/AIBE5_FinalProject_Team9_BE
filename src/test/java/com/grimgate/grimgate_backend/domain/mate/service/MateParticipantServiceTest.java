@@ -132,6 +132,19 @@ class MateParticipantServiceTest {
     }
 
     @Test
+    @DisplayName("join - 마감(deadline)이 지난 모집글이면 DEADLINE_PASSED")
+    void join_deadlinePassed() throws Exception {
+        MatePost post = buildPostWithDeadline(2, 4, MatePostStatus.RECRUITING,
+                LocalDateTime.now().minusHours(1));
+        when(matePostRepository.findByIdForUpdate(POST_ID)).thenReturn(Optional.of(post));
+        when(memberRepository.findByAccount_Id(GUEST_ACCOUNT_ID)).thenReturn(Optional.of(guestMember));
+
+        assertThatThrownBy(() -> participantService.join(GUEST_ACCOUNT_ID, POST_ID))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.MATE_PARTICIPANT_DEADLINE_PASSED.getMessage());
+    }
+
+    @Test
     @DisplayName("join - 이미 JOINED 상태면 ALREADY_JOINED")
     void join_alreadyJoined() throws Exception {
         MatePost post = buildPost(2, 4, MatePostStatus.RECRUITING);
@@ -316,13 +329,20 @@ class MateParticipantServiceTest {
     /* ===== Helpers ===== */
 
     private MatePost buildPost(int currentPeople, int maxPeople, MatePostStatus status) throws Exception {
+        return buildPostWithDeadline(currentPeople, maxPeople, status,
+                LocalDateTime.now().plusDays(1));
+    }
+
+    private MatePost buildPostWithDeadline(int currentPeople, int maxPeople,
+                                            MatePostStatus status,
+                                            LocalDateTime deadline) throws Exception {
         MatePost post = MatePost.builder()
                 .member(authorMember)
                 .theme(theme)
                 .title("저녁에 같이 방탈출")
                 .content("초보 환영")
                 .meetingTime(LocalDateTime.now().plusDays(2))
-                .deadline(LocalDateTime.now().plusDays(1))
+                .deadline(deadline)
                 .currentPeople(currentPeople)
                 .maxPeople(maxPeople)
                 .openChatUrl("https://open.kakao.com/o/abc123")

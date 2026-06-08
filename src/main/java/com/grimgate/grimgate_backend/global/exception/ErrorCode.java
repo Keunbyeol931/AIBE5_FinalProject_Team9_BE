@@ -62,6 +62,7 @@ public enum ErrorCode {
     MATE_PARTICIPANT_NOT_JOINED(HttpStatus.BAD_REQUEST, "참여 중이 아닙니다."),
     MATE_PARTICIPANT_KICK_FORBIDDEN(HttpStatus.FORBIDDEN, "작성자만 참여자를 내보낼 수 있습니다."),
     MATE_PARTICIPANT_KICK_SELF(HttpStatus.BAD_REQUEST, "작성자 본인은 강퇴할 수 없습니다."),
+    MATE_PARTICIPANT_DEADLINE_PASSED(HttpStatus.BAD_REQUEST, "모집 마감이 지난 모집글에는 참여할 수 없습니다."),
 
     INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST, "최소 인원은 최대 인원보다 클 수 없습니다.");
 
