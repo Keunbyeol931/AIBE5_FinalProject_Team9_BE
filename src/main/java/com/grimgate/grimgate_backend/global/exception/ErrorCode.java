@@ -52,6 +52,17 @@ public enum ErrorCode {
     MATE_POST_INVALID_DEADLINE(HttpStatus.BAD_REQUEST, "마감일은 모임 시간보다 늦을 수 없습니다."),
     MATE_POST_INVALID_MEETING_TIME(HttpStatus.BAD_REQUEST, "모임 시간은 현재 이후여야 합니다."),
     MATE_POST_INVALID_OPEN_CHAT_URL(HttpStatus.BAD_REQUEST, "카카오 오픈채팅 URL 형식이 올바르지 않습니다."),
+
+    // 메이트 참여
+    MATE_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "참여 정보를 찾을 수 없습니다."),
+    MATE_PARTICIPANT_ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여 중인 모집글입니다."),
+    MATE_PARTICIPANT_AUTHOR_CANNOT_JOIN(HttpStatus.BAD_REQUEST, "작성자는 자신의 모집글에 참여할 수 없습니다."),
+    MATE_PARTICIPANT_FULL(HttpStatus.CONFLICT, "모집 인원이 모두 찼습니다."),
+    MATE_PARTICIPANT_NOT_RECRUITING(HttpStatus.BAD_REQUEST, "현재 참여 가능한 상태가 아닙니다."),
+    MATE_PARTICIPANT_NOT_JOINED(HttpStatus.BAD_REQUEST, "참여 중이 아닙니다."),
+    MATE_PARTICIPANT_KICK_FORBIDDEN(HttpStatus.FORBIDDEN, "작성자만 참여자를 내보낼 수 있습니다."),
+    MATE_PARTICIPANT_KICK_SELF(HttpStatus.BAD_REQUEST, "작성자 본인은 강퇴할 수 없습니다."),
+
     INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST, "최소 인원은 최대 인원보다 클 수 없습니다.");
 
     private final HttpStatus httpStatus;
