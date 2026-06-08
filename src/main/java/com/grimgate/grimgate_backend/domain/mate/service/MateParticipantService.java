@@ -43,7 +43,7 @@ public class MateParticipantService {
     /** 참여 신청 */
     @Transactional
     public MateParticipantResponse join(Long accountId, Long matePostId) {
-        MatePost post = findActivePost(matePostId);
+        MatePost post = findActivePostForUpdate(matePostId);
         Member member = resolveMember(accountId);
 
         if (post.isAuthor(member.getId())) {
@@ -74,7 +74,7 @@ public class MateParticipantService {
     /** 본인 참여 취소 (자기가 나감) */
     @Transactional
     public void cancel(Long accountId, Long matePostId) {
-        MatePost post = findActivePost(matePostId);
+        MatePost post = findActivePostForUpdate(matePostId);
         Member member = resolveMember(accountId);
 
         MateParticipant participant = participantRepository
@@ -92,7 +92,7 @@ public class MateParticipantService {
     /** 작성자가 참여자 강퇴 */
     @Transactional
     public void kick(Long accountId, Long matePostId, Long targetMemberId) {
-        MatePost post = findActivePost(matePostId);
+        MatePost post = findActivePostForUpdate(matePostId);
         Member author = resolveMember(accountId);
 
         if (!post.isAuthor(author.getId())) {
@@ -148,6 +148,18 @@ public class MateParticipantService {
 
     private MatePost findActivePost(Long matePostId) {
         MatePost post = matePostRepository.findById(matePostId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MATE_POST_NOT_FOUND));
+        if (post.isDeleted()) {
+            throw new CustomException(ErrorCode.MATE_POST_NOT_FOUND);
+        }
+        return post;
+    }
+
+    /**
+     * 동시 참여/취소/강퇴 시 currentPeople 경합 방지용 비관적 쓰기 락 버전.
+     */
+    private MatePost findActivePostForUpdate(Long matePostId) {
+        MatePost post = matePostRepository.findByIdForUpdate(matePostId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MATE_POST_NOT_FOUND));
         if (post.isDeleted()) {
             throw new CustomException(ErrorCode.MATE_POST_NOT_FOUND);
