@@ -55,5 +55,9 @@ public class Account extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean genderVisible = true;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean emailVisible = true;
+
     private LocalDateTime deletedAt;
 }
