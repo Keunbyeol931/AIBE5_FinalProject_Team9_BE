@@ -1,4 +1,4 @@
-package com.grimgate.grimgate_backend.domain.member.service;
+package com.grimgate.grimgate_backend.domain.title.service;
 
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
 import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
@@ -16,7 +16,7 @@ import java.util.Optional;
  */
 @Component
 @RequiredArgsConstructor
-public class TitleCalculator {
+public class TitleService {
 
     private final TitleRepository titleRepository;
 
