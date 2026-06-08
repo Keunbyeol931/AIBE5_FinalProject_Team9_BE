@@ -37,7 +37,7 @@ public class TitleService {
      */
     public long calcClearedCount(List<Reservation> reservations) {
         return reservations.stream()
-                .filter(r -> r.getStatus() == ReservationStatus.CONFIRMED)
+                .filter(r -> r.getStatus() == ReservationStatus.CONFIRMED || r.getStatus() == ReservationStatus.COMPLETED)
                 .filter(r -> r.getTimeSlot().getSlotDate().isBefore(LocalDate.now()))
                 .filter(r -> Boolean.TRUE.equals(r.getIsCleared()))
                 .count();

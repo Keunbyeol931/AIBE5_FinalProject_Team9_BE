@@ -16,11 +16,12 @@ import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -84,11 +85,12 @@ public class MyPageReservationService {
 
         // 이미지 저장
         if (request.getImageUrls() != null ) {
-            List<ReviewImage> images = request.getImageUrls().stream()
-                    .map(url -> ReviewImage.builder()
+            List<String> imageUrls = request.getImageUrls();
+            List<ReviewImage> images = IntStream.range(0, imageUrls.size())
+                    .mapToObj(i -> ReviewImage.builder()
                             .review(review)
-                            .imageUrl(url)
-                            .imageOrder(String.valueOf(request.getImageUrls().indexOf(url) + 1))
+                            .imageUrl(imageUrls.get(i))
+                            .imageOrder(String.valueOf(i + 1))
                             .build())
                     .toList();
             reviewImageRepository.saveAll(images);
