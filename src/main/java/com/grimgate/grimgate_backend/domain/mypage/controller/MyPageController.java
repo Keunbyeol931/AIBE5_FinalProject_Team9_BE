@@ -83,26 +83,28 @@ public class MyPageController {
         myPageService.updateProfile(accountId, request);
         return ResponseEntity.ok(ApiResponse.success("프로필 수정 성공", null));
     }
-    // TODO: ApiResponse 래퍼 적용 필요 - 현재 날것으로 반환 중
     // 후기 생성
     @PostMapping("/reviews")
-    public ResponseEntity<ReviewResponse> createReview(
+    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
             @Valid @RequestBody ReviewCreateRequest request) {
-        return ResponseEntity.ok(mypageReservationService.createReview(request));
+        ReviewResponse response = mypageReservationService.createReview(request);
+        return ResponseEntity.ok(ApiResponse.success("후기 생성 성공", response));
     }
 
     // 내 후기 조회
     @GetMapping("/reviews")
-    public ResponseEntity<List<ReviewResponse>> getMyReviews() {
-        return ResponseEntity.ok(mypageActivityService.getMyReviews());
+    public ResponseEntity<ApiResponse<List<ReviewResponse>>> getMyReviews() {
+        List<ReviewResponse> response = mypageActivityService.getMyReviews();
+        return ResponseEntity.ok(ApiResponse.success("내 후기 조회 성공", response));
     }
 
     // 내 후기 수정
     @PatchMapping("/reviews/{reviewId}")
-    public ResponseEntity<ReviewResponse> updateMyReview(
+    public ResponseEntity<ApiResponse<ReviewResponse>> updateMyReview(
             @PathVariable Long reviewId,
             @Valid @RequestBody ReviewUpdateRequest request) {
-        return ResponseEntity.ok(mypageActivityService.updateMyReview(reviewId, request));
+        ReviewResponse response = mypageActivityService.updateMyReview(reviewId, request);
+        return ResponseEntity.ok(ApiResponse.success("후기 수정 성공", response));
     }
 
     // 내 후기 삭제

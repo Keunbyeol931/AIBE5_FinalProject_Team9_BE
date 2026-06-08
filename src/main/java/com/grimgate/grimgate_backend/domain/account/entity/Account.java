@@ -74,6 +74,11 @@ public class Account extends BaseTimeEntity {
         if (emailVisible != null) this.emailVisible = emailVisible;
     }
 
+    // 비밀번호 변경
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     /**
      * 회원 탈퇴 처리: deletedAt 세팅 + email unique 제약 충돌 방지를 위해 이메일 변조
      * 변조 형식: 원본이메일_deleted_계정ID

@@ -151,6 +151,7 @@ public class MyPageActivityService {
                 .orElse(0.0);
         double newRating = Math.round(average * 10.0) / 10.0;
         theme.updateRating(newRating, remaining.size());
+        themeRepository.save(theme);
 
     }
 

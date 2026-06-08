@@ -106,6 +106,15 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 완료되었습니다.", null));
     }
 
+    // 비밀번호 변경
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @RequestBody @Valid ChangePasswordRequest request) {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        authService.changePassword(accountId, request);
+        return ResponseEntity.ok(ApiResponse.success("비밀번호가 변경되었습니다.", null));
+    }
+
     // TODO: AU-003 POST /api/auth/oauth/google (Google OAuth 소셜 로그인)
     // TODO: AU-006 POST /api/auth/password/reset-request (비밀번호 재설정 이메일 발송)
     // TODO: AU-007 POST /api/auth/password/reset (비밀번호 재설정)

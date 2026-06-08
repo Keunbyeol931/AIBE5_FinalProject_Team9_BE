@@ -283,6 +283,22 @@ public class AuthService {
         accountRepository.save(account);
     }
 
+    // 비밀번호 변경
+    @Transactional
+    public void changePassword(Long accountId, ChangePasswordRequest request) {
+        // 계정 조회
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
+            throw new CustomException(ErrorCode.INVALID_PASSWORD);
+        }
+
+        // 새 비밀번호 암호화 후 업데이트
+        account.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+    }
+
     // 이메일 중복 확인
     public void checkEmail(String email) {
         if (accountRepository.existsByEmail(email)) {

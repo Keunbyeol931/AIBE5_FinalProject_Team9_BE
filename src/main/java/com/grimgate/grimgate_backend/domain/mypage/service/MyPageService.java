@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -62,7 +63,11 @@ public class MyPageService {
         return MyPageStatsResponse.builder()
                 .totalPlayCount((int) totalPlayCount)
                 .successRate((int) successRate)
-                .bestClearTime(null)
+                .bestClearTime(reservations.stream()
+                        .filter(r -> Boolean.TRUE.equals(r.getIsCleared()) && r.getClearTime() != null)
+                        .map(Reservation::getClearTime)
+                        .min(LocalTime::compareTo)
+                        .orElse(null))
                 .acquiredAchievementCount(acquiredAchievementCount)
                 .totalAchievementCount(totalAchievementCount)
                 .build();
