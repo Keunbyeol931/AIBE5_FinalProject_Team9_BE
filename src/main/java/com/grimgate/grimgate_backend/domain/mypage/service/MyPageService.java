@@ -77,6 +77,9 @@ public class MyPageService {
      * 예약 목록 조회 (UPCOMING: 예정, PAST: 지난)
      */
     public List<MyPageReservationResponse> getReservations(Long accountId, String type) {
+        if (!"UPCOMING".equals(type) && !"PAST".equals(type)) {
+            throw new CustomException(ErrorCode.INVALID_RESERVATION_TYPE);
+        }
         Member member = memberRepository.findByAccount_Id(accountId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 

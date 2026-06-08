@@ -20,8 +20,8 @@ public class MyPageFacade {
      * 마이페이지 메인 조회: 프로필 + 통계 통합 반환
      */
     public MyPageMainResponse getMyPageMain(Long accountId) {
-        MyPageProfileResponse profile = myPageService.getProfile(accountId);
         MyPageStatsResponse stats = myPageService.getStats(accountId);
+        MyPageProfileResponse profile = myPageService.getProfile(accountId);
 
         return MyPageMainResponse.builder()
                 .profile(profile)

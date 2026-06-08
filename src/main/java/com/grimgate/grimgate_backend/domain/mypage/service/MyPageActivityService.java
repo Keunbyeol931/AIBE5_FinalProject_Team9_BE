@@ -15,16 +15,17 @@ import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class MyPageActivityService {
 
     private final MemberRepository memberRepository;
@@ -62,6 +63,7 @@ public class MyPageActivityService {
     }
 
     // 내 후기 수정
+    @Transactional
     public ReviewResponse updateMyReview(Long reviewId, ReviewUpdateRequest request){
         Long accountId = SecurityUtil.getCurrentAccountId();
         Member member = memberRepository.findByAccount_Id(accountId)
@@ -83,11 +85,12 @@ public class MyPageActivityService {
 // 기존 이미지 삭제 후 새로 저장
         reviewImageRepository.deleteByReviewId(reviewId);
         if (request.getImageUrls() != null) {
-            List<ReviewImage> images = request.getImageUrls().stream()
-                    .map(url -> ReviewImage.builder()
+            List<String> imageUrls = request.getImageUrls();
+            List<ReviewImage> images = IntStream.range(0, imageUrls.size())
+                    .mapToObj(i -> ReviewImage.builder()
                             .review(review)
-                            .imageUrl(url)
-                            .imageOrder(String.valueOf(request.getImageUrls().indexOf(url) + 1))
+                            .imageUrl(imageUrls.get(i))
+                            .imageOrder(String.valueOf(i + 1))
                             .build())
                     .toList();
             reviewImageRepository.saveAll(images);
@@ -141,6 +144,7 @@ public class MyPageActivityService {
     }
 
     //내 후기 삭제
+    @Transactional
     public void deleteMyReview(Long reviewId) {
         Long accountId = SecurityUtil.getCurrentAccountId();
 

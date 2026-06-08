@@ -34,6 +34,7 @@ public enum ErrorCode {
     TITLE_NOT_FOUND(HttpStatus.NOT_FOUND, "칭호를 찾을 수 없습니다."),
 
     //마이페이지 후기
+    INVALID_RESERVATION_TYPE(HttpStatus.BAD_REQUEST, "예약 조회 타입은 UPCOMING 또는 PAST만 허용됩니다."),
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "예약을 찾을 수 없습니다."),
     RESERVATION_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "완료된 예약만 후기 작성이 가능합니다."),
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 후기를 작성한 예약입니다."),
