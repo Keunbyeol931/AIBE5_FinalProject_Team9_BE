@@ -20,7 +20,7 @@ import java.util.List;
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
     // 마이페이지 - 회원 기준 예약 목록 조회
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.timeSlot WHERE r.member = :member")
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.timeSlot ts JOIN FETCH ts.theme t JOIN FETCH t.branch WHERE r.member = :member")
     List<Reservation> findByMemberWithTimeSlot(@Param("member") Member member);
 
     // 사장님 페이지 - 지점 및 필터 기준 예약 목록 조회
