@@ -5,6 +5,7 @@ package com.grimgate.grimgate_backend.domain.review.dto;
 import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 public class ReviewResponse {
@@ -16,6 +17,7 @@ public class ReviewResponse {
     private String content;
     private Boolean spoiler;
     private LocalDateTime createdAt;
+    private List<String> imageUrls;
 
     @Builder
     public ReviewResponse(
@@ -26,7 +28,8 @@ public class ReviewResponse {
             String tags,
             String content,
             Boolean spoiler,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            List<String> imageUrls
     ) {
         this.nickname = nickname;
         this.rating = rating;
@@ -36,5 +39,6 @@ public class ReviewResponse {
         this.content = content;
         this.spoiler = spoiler;
         this.createdAt = createdAt;
+        this.imageUrls = imageUrls;
     }
 }

@@ -2,6 +2,12 @@ package com.grimgate.grimgate_backend.domain.owner.service;
 
 import com.grimgate.grimgate_backend.domain.manager.entity.Manager;
 import com.grimgate.grimgate_backend.domain.manager.repository.ManagerRepository;
+import com.grimgate.grimgate_backend.domain.review.entity.Review;
+import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageRepository;
+import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
+import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
@@ -9,9 +15,6 @@ import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.BranchRepository;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
-import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
-import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
-import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
@@ -32,6 +35,8 @@ public class OwnerService {
     private final BranchRepository branchRepository;
     private final ManagerRepository managerRepository;
     private final ReservationRepository reservationRepository;
+    private final ReviewRepository reviewRepository;
+    private final ReviewImageRepository reviewImageRepository;
 
     // 사장님 테마 관리 목록
     public List<ThemeResponse> getOwnerThemes(Long branchId) {
@@ -117,6 +122,15 @@ public class OwnerService {
         if (!theme.getBranch().getId().equals(branch.getId())) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
+
+        List<Long> reviewIds = reviewRepository.findByThemeId(themeId)
+                .stream()
+                .map(Review::getId)
+                .toList();
+
+        reviewIds.forEach(reviewImageRepository::deleteByReviewId);
+       // 테마 후기 삭제
+        reviewRepository.deleteByThemeId(themeId);
 
         themeRepository.deleteById(themeId);
     }

@@ -1,5 +1,6 @@
 package com.grimgate.grimgate_backend.domain.review.controller;
 
+import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewTabResponse;
 import com.grimgate.grimgate_backend.domain.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
@@ -9,13 +10,13 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/themes")
+@RequestMapping("/api")
 public class ReviewController {
 
     private final ReviewService reviewService;
 
-    //조회
-    @GetMapping("/{themeId}/reviews")
+    //전체테마 후기 조회
+    @GetMapping("/themes/{themeId}/reviews")
     public ReviewTabResponse getReviewsByThemeId(
             @PathVariable Long themeId,
             @RequestParam(required = false, defaultValue = "1")
@@ -33,4 +34,12 @@ public class ReviewController {
         return reviewService.getReviewTab(
                 themeId, page, limit, sort);
     }
+
+    //후기 단건 상세 조회
+    @GetMapping("/reviews{reviewId}")
+    public ReviewResponse getReviewById(
+            @PathVariable Long reviewId){
+        return reviewService.getReviewById(reviewId);
+    }
+
 }

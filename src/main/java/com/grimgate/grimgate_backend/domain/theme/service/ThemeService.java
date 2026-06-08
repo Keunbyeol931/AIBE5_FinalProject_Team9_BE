@@ -69,7 +69,7 @@ public class ThemeService {
 
                 //키워드
                 .filter(theme -> condition.getKeyword() == null
-                        || theme.getTitle().contains(condition.getKeyword()))
+                        || theme.getTags().contains(condition.getKeyword()))
 
                 .map(theme -> new ThemeResponse(
                         theme.getId(),

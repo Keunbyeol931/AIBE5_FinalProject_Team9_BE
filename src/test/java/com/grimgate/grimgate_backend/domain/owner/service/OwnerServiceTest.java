@@ -3,6 +3,8 @@ package com.grimgate.grimgate_backend.domain.owner.service;
 import com.grimgate.grimgate_backend.domain.account.entity.Account;
 import com.grimgate.grimgate_backend.domain.manager.entity.Manager;
 import com.grimgate.grimgate_backend.domain.manager.repository.ManagerRepository;
+import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageRepository;
+import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
 import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
@@ -59,6 +61,12 @@ public class OwnerServiceTest {
 
     @Mock
     private ReservationRepository reservationRepository;
+
+    @Mock
+    private ReviewRepository reviewRepository;
+
+    @Mock
+    private ReviewImageRepository reviewImageRepository;
 
     @Test
     @DisplayName("테마 등록 성공")
@@ -134,6 +142,7 @@ public class OwnerServiceTest {
             when(managerRepository.findByAccount_Id(any())).thenReturn(Optional.of(manager));
             when(branchRepository.findByManagerId(any())).thenReturn(Optional.of(branch));
             when(themeRepository.findById(any())).thenReturn(Optional.of(theme));
+            when(reviewRepository.findByThemeId(any())).thenReturn(Collections.emptyList());
 
             // when
             ownerService.deleteTheme(1L);

@@ -3,9 +3,13 @@ package com.grimgate.grimgate_backend.domain.review.service;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewTabResponse;
 import com.grimgate.grimgate_backend.domain.review.entity.Review;
+import com.grimgate.grimgate_backend.domain.review.entity.ReviewImage;
+import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageRepository;
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
+import com.grimgate.grimgate_backend.global.exception.CustomException;
+import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +29,7 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ThemeRepository themeRepository;
+    private final ReviewImageRepository reviewImageRepository;
 
     public ReviewTabResponse getReviewTab(Long themeId, Integer page, Integer limit, String sort) {
 
@@ -68,7 +73,7 @@ public class ReviewService {
                 theme.getMaxPeople(),
                 theme.getPlayTime(),
                 theme.getThumbnailUrl(),
-                theme.getRating(),  // averageRating
+                theme.getRating(), //평균
                 distribution,
                 reviews
         );
@@ -79,6 +84,28 @@ public class ReviewService {
                 ? Sort.by(Sort.Direction.DESC, "rating")
                 : Sort.by(Sort.Direction.DESC, "createdAt");
         return PageRequest.of(page - 1, limit, sorting);
+    }
+
+    public ReviewResponse getReviewById(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_NOT_FOUND));
+
+        List<String> imageUrls = reviewImageRepository.findByReview_Id(reviewId)
+                .stream()
+                .map(ReviewImage::getImageUrl)
+                .toList();
+
+        return ReviewResponse.builder()
+                .nickname(review.getMember().getAccount().getNickname())
+                .rating(review.getRating())
+                .horrorRating(review.getHorrorRating())
+                .difficultyRating(review.getDifficultyRating())
+                .tags(review.getTags())
+                .content(review.getContent())
+                .spoiler(review.getSpoiler())
+                .createdAt(review.getCreatedAt())
+                .imageUrls(imageUrls)
+                .build();
     }
 
 }
