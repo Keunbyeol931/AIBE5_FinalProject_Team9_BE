@@ -2,6 +2,8 @@ package com.grimgate.grimgate_backend.domain.theme.repository;
 
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,4 +17,8 @@ import java.util.List;
 @Repository
 public interface ThemeRepository extends JpaRepository<Theme, Long> {
     List<Theme> findByBranchId(Long branchId);
+    List<Theme> findByTagsContaining(String Tags);
+
+    @Query(value = "SELECT * FROM theme WHERE deleted_at IS NULL ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    List<Theme> findRandom(@Param("limit") int limit);
 }

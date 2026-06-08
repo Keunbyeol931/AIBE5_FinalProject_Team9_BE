@@ -82,6 +82,7 @@ public class Review {
         review.tags = request.getTags();
         review.content = request.getContent();
         Boolean spoiler = request.getSpoiler();
+        review.spoiler = request.getSpoiler();
         review.status = "ACTIVE";
         return review;
 
