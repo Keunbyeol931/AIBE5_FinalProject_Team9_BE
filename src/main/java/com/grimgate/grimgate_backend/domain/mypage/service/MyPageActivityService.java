@@ -1,7 +1,9 @@
 package com.grimgate.grimgate_backend.domain.mypage.service;
 
+import com.grimgate.grimgate_backend.domain.mate.repository.MatePostRepository;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
+import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMatePostResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
 import com.grimgate.grimgate_backend.domain.review.entity.Review;
@@ -15,6 +17,7 @@ import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,6 +31,7 @@ public class MyPageActivityService {
     private final ReviewRepository reviewRepository;
     private final ReviewImageRepository reviewImageRepository;
     private final ThemeRepository themeRepository;
+    private final MatePostRepository matePostRepository;
 
     // 내 후기 조회
     public List<ReviewResponse> getMyReviews(){
@@ -120,6 +124,21 @@ public class MyPageActivityService {
 
     }
 
+
+    // 내 메이트 모집글 조회
+    public List<MyPageMatePostResponse> getMyMatePosts() {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Member member = memberRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        return matePostRepository.findByMemberIdAndDeletedAtIsNull(
+                        member.getId(),
+                        org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE,
+                                Sort.by(Sort.Direction.DESC, "createdAt")))
+                .stream()
+                .map(MyPageMatePostResponse::from)
+                .toList();
+    }
 
     //내 후기 삭제
     public void deleteMyReview(Long reviewId) {

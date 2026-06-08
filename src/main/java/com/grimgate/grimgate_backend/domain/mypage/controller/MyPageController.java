@@ -4,6 +4,7 @@ import com.grimgate.grimgate_backend.domain.achievement.service.AchievementServi
 import com.grimgate.grimgate_backend.domain.mypage.dto.request.MyPageProfileUpdateRequest;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageAchievementResponse;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMainResponse;
+import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMatePostResponse;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageProfileResponse;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageReservationResponse;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageStatsResponse;
@@ -89,6 +90,13 @@ public class MyPageController {
             @Valid @RequestBody ReviewCreateRequest request) {
         ReviewResponse response = mypageReservationService.createReview(request);
         return ResponseEntity.ok(ApiResponse.success("후기 생성 성공", response));
+    }
+
+    // 내 메이트 모집글 조회
+    @GetMapping("/mypage/mate-posts")
+    public ResponseEntity<ApiResponse<List<MyPageMatePostResponse>>> getMyMatePosts() {
+        List<MyPageMatePostResponse> response = mypageActivityService.getMyMatePosts();
+        return ResponseEntity.ok(ApiResponse.success("내 메이트 모집글 조회 성공", response));
     }
 
     // 내 후기 조회
