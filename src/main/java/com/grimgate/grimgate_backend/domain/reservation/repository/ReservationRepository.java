@@ -1,5 +1,6 @@
 package com.grimgate.grimgate_backend.domain.reservation.repository;
 
+import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
 import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 예약(Reservation) 엔티티에 대한 데이터베이스 액세스 처리를 담당하는 Repository 인터페이스입니다.
@@ -17,6 +19,11 @@ import java.time.LocalDate;
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    // 마이페이지 - 회원 기준 예약 목록 조회
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.timeSlot WHERE r.member = :member")
+    List<Reservation> findByMemberWithTimeSlot(@Param("member") Member member);
+
+    // 사장님 페이지 - 지점 및 필터 기준 예약 목록 조회
     @Query(value = "SELECT r FROM Reservation r " +
             "JOIN FETCH r.timeSlot ts " +
             "JOIN FETCH ts.theme t " +

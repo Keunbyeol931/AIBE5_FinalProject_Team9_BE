@@ -191,6 +191,9 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
+        // 실제 남은 TTL 조회 (초 단위)
+        Long remainingTtl = redisTemplate.getExpire("refresh_token:" + accountId, TimeUnit.SECONDS);
+
         // 기존 Redis 키 삭제 (RTR)
         refreshTokenRepository.delete(stored);
 
@@ -202,12 +205,13 @@ public class AuthService {
         String newAccessToken = jwtProvider.generateAccessToken(accountId, account.getRole().name());
         String newRefreshToken = jwtProvider.generateRefreshToken(accountId);
 
-        // Redis에 새 리프레시 토큰 저장 (기존 TTL 유지)
+        // Redis에 새 리프레시 토큰 저장 (실제 남은 TTL 유지, 조회 실패 시 원래 TTL 사용)
+        long ttlToApply = (remainingTtl != null && remainingTtl > 0) ? remainingTtl : stored.getTtl();
         RefreshToken newRefreshTokenEntity = RefreshToken.builder()
                 .id(String.valueOf(accountId))
                 .accountId(accountId)
                 .token(newRefreshToken)
-                .ttl(stored.getTtl())
+                .ttl(ttlToApply)
                 .build();
 
         refreshTokenRepository.save(newRefreshTokenEntity);

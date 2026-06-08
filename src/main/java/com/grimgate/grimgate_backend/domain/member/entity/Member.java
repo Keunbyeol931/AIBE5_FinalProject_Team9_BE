@@ -26,4 +26,8 @@ public class Member extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_character_id", nullable = false)
     private ProfileCharacter profileCharacter;
+
+    public void updateTitleId(Long titleId) {
+        this.titleId = titleId;
+    }
 }
