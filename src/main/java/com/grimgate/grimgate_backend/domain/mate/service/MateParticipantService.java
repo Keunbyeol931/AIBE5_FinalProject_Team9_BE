@@ -72,14 +72,19 @@ public class MateParticipantService {
                 .orElseGet(() -> participantRepository.save(MateParticipant.join(post, member)));
 
         post.increaseParticipant();
-        return MateParticipantResponse.from(participant);
+        return MateParticipantResponse.fromWithOpenChat(participant);
     }
 
     /** 본인 참여 취소 (자기가 나감) */
     @Transactional
-    public void cancel(Long accountId, Long matePostId) {
+    public MateParticipantResponse cancel(Long accountId, Long matePostId) {
         MatePost post = findActivePostForUpdate(matePostId);
         Member member = resolveMember(accountId);
+
+        // 명세 MP-002: RECRUITING / CLOSING_SOON 상태에서만 취소 허용 (MATCHED/CLOSED 후에는 취소 불가)
+        if (!post.isRecruitable()) {
+            throw new CustomException(ErrorCode.MATE_PARTICIPANT_CANCEL_NOT_ALLOWED);
+        }
 
         MateParticipant participant = participantRepository
                 .findByMatePost_IdAndMember_Id(post.getId(), member.getId())
@@ -91,6 +96,7 @@ public class MateParticipantService {
 
         participant.cancel();
         post.decreaseParticipant();
+        return MateParticipantResponse.from(participant);
     }
 
     /** 작성자가 참여자 강퇴 */
@@ -120,9 +126,17 @@ public class MateParticipantService {
 
     /* ===== Query ===== */
 
-    /** 모집글 참여자 목록 조회 (활성만) */
-    public MateParticipantListResponse listParticipants(Long matePostId) {
+    /**
+     * 모집글 참여자 목록 조회 (활성만).
+     * 명세 MP-003: 작성자만 조회 가능.
+     */
+    public MateParticipantListResponse listParticipants(Long accountId, Long matePostId) {
         MatePost post = findActivePost(matePostId);
+        Member viewer = resolveMember(accountId);
+
+        if (!post.isAuthor(viewer.getId())) {
+            throw new CustomException(ErrorCode.MATE_PARTICIPANT_LIST_FORBIDDEN);
+        }
 
         List<MateParticipantResponse> items = participantRepository
                 .findActiveByMatePostId(post.getId(), MateParticipantStatus.JOINED)

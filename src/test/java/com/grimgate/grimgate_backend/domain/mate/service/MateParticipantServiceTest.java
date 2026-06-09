@@ -231,7 +231,7 @@ class MateParticipantServiceTest {
     }
 
     @Test
-    @DisplayName("cancel - 정상 취소: status=CANCELLED, currentPeople -1")
+    @DisplayName("cancel - 정상 취소: status=CANCELLED, currentPeople -1, DTO 반환")
     void cancel_success() throws Exception {
         MatePost post = buildPost(2, 4, MatePostStatus.RECRUITING);
         MateParticipant active = MateParticipant.join(post, guestMember);
@@ -240,11 +240,25 @@ class MateParticipantServiceTest {
         when(participantRepository.findByMatePost_IdAndMember_Id(POST_ID, GUEST_MEMBER_ID))
                 .thenReturn(Optional.of(active));
 
-        participantService.cancel(GUEST_ACCOUNT_ID, POST_ID);
+        MateParticipantResponse res = participantService.cancel(GUEST_ACCOUNT_ID, POST_ID);
 
         assertThat(active.getStatus()).isEqualTo(MateParticipantStatus.CANCELLED);
         assertThat(active.getCancelledAt()).isNotNull();
         assertThat(post.getCurrentPeople()).isEqualTo(1);
+        assertThat(res.getStatus()).isEqualTo(MateParticipantStatus.CANCELLED);
+        assertThat(res.getMemberId()).isEqualTo(GUEST_MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("cancel - 모집글이 MATCHED 상태면 CANCEL_NOT_ALLOWED")
+    void cancel_notAllowedWhenMatched() throws Exception {
+        MatePost post = buildPost(4, 4, MatePostStatus.MATCHED);
+        when(matePostRepository.findByIdForUpdate(POST_ID)).thenReturn(Optional.of(post));
+        when(memberRepository.findByAccount_Id(GUEST_ACCOUNT_ID)).thenReturn(Optional.of(guestMember));
+
+        assertThatThrownBy(() -> participantService.cancel(GUEST_ACCOUNT_ID, POST_ID))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.MATE_PARTICIPANT_CANCEL_NOT_ALLOWED.getMessage());
     }
 
     /* ===== kick ===== */
@@ -293,21 +307,34 @@ class MateParticipantServiceTest {
     /* ===== queries ===== */
 
     @Test
-    @DisplayName("listParticipants - 활성 참여자만 응답에 포함")
-    void listParticipants() throws Exception {
+    @DisplayName("listParticipants - 작성자가 조회: 활성 참여자만 응답에 포함")
+    void listParticipants_authorOk() throws Exception {
         MatePost post = buildPost(2, 4, MatePostStatus.RECRUITING);
         MateParticipant joined = MateParticipant.join(post, guestMember);
         when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(memberRepository.findByAccount_Id(AUTHOR_ACCOUNT_ID)).thenReturn(Optional.of(authorMember));
         when(participantRepository.findActiveByMatePostId(POST_ID, MateParticipantStatus.JOINED))
                 .thenReturn(List.of(joined));
 
-        MateParticipantListResponse res = participantService.listParticipants(POST_ID);
+        MateParticipantListResponse res = participantService.listParticipants(AUTHOR_ACCOUNT_ID, POST_ID);
 
         assertThat(res.getMatePostId()).isEqualTo(POST_ID);
         assertThat(res.getCurrentPeople()).isEqualTo(2);
         assertThat(res.getMaxPeople()).isEqualTo(4);
         assertThat(res.getItems()).hasSize(1);
         assertThat(res.getItems().get(0).getMemberId()).isEqualTo(GUEST_MEMBER_ID);
+    }
+
+    @Test
+    @DisplayName("listParticipants - 비작성자가 조회하면 LIST_FORBIDDEN")
+    void listParticipants_nonAuthorForbidden() throws Exception {
+        MatePost post = buildPost(2, 4, MatePostStatus.RECRUITING);
+        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(memberRepository.findByAccount_Id(GUEST_ACCOUNT_ID)).thenReturn(Optional.of(guestMember));
+
+        assertThatThrownBy(() -> participantService.listParticipants(GUEST_ACCOUNT_ID, POST_ID))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.MATE_PARTICIPANT_LIST_FORBIDDEN.getMessage());
     }
 
     @Test
