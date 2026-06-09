@@ -1,4 +1,105 @@
 package com.grimgate.grimgate_backend.domain.payment.service;
 
+import com.grimgate.grimgate_backend.domain.member.entity.Member;
+import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentReadyRequest;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentReadyResponse;
+import com.grimgate.grimgate_backend.domain.payment.entity.Payment;
+import com.grimgate.grimgate_backend.domain.payment.entity.PaymentStatus;
+import com.grimgate.grimgate_backend.domain.payment.repository.PaymentRepository;
+import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
+import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
+import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
+import com.grimgate.grimgate_backend.global.exception.CustomException;
+import com.grimgate.grimgate_backend.global.exception.ErrorCode;
+import com.grimgate.grimgate_backend.global.security.SecurityUtil;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class PaymentService {
+
+    private final PaymentRepository paymentRepository;
+    private final ReservationRepository reservationRepository;
+    private final MemberRepository memberRepository;
+
+    /**
+     * 결제 준비(Ready) 단계를 처리합니다.
+     * 
+     * [이슈 #48 비즈니스 요구사항]
+     * - Toss 결제창 요청 전, 금액 위변조 및 중복 결제 요청 방지를 위한 검증을 수행합니다.
+     * - 결제 최종 승인(confirm), 웹훅(webhook), 결제 실패/환불(cancel) 처리는 본 이슈 범위에서 제외하며 후속 이슈로 처리합니다.
+     *
+     * @param request 결제 준비 요청 DTO
+     * @return 결제 준비 결과 응답 DTO (토스 위젯 렌더링에 필요한 정보 포함)
+     */
+    @Transactional
+    public PaymentReadyResponse readyPayment(PaymentReadyRequest request) {
+        // [검증 흐름 순서]
+
+        // 1) 로그인 사용자 조회
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Member member = memberRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        // 2) 예약 존재 여부 확인
+        Reservation reservation = reservationRepository.findById(request.getReservationId())
+                .orElseThrow(() -> new CustomException(ErrorCode.RESERVATION_NOT_FOUND));
+
+        // 3) 예약자 본인 여부 확인 (예약의 소유권 검증)
+        if (!reservation.getMember().getId().equals(member.getId())) {
+            throw new CustomException(ErrorCode.FORBIDDEN);
+        }
+
+        // 4) 예약 상태 검증 (결제 대기인 PENDING_PAYMENT 상태일 때만 결제 진행 허용)
+        if (reservation.getStatus() != ReservationStatus.PENDING_PAYMENT) {
+            throw new CustomException(ErrorCode.INVALID_RESERVATION_STATUS);
+        }
+
+        // 5) 결제 금액 위변조 검증 (프론트에서 전달된 결제 요청 금액과 실제 DB의 예약 총 금액 일치 여부 확인)
+        if (!reservation.getTotalPrice().equals(request.getAmount())) {
+            throw new CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        // 6) 중복 결제 검증 (Reservation과 Payment는 1:1 관계이므로, 이미 해당 예약에 대한 결제 내역이 존재하는지 확인)
+        if (paymentRepository.findByReservationId(request.getReservationId()).isPresent()) {
+            throw new CustomException(ErrorCode.PAYMENT_ALREADY_EXISTS);
+        }
+
+        // 7) orderId 생성 및 PAY_PENDING 저장
+        // - PG사 결제 연동에 사용할 유니크한 주문 ID를 UUID 기반으로 생성합니다.
+        String orderId = UUID.randomUUID().toString();
+
+        // - 초기 결제 상태를 PAY_PENDING(결제 대기)으로 설정하여 결제 데이터를 데이터베이스에 생성 및 저장합니다.
+        Payment payment = Payment.builder()
+                .reservation(reservation)
+                .member(member)
+                .amount(request.getAmount())
+                .orderId(orderId)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        Payment savedPayment = paymentRepository.save(payment);
+
+        // 8. 토스 결제 위젯 렌더링에 필요한 추가 메타데이터 조회
+        String orderName = reservation.getTimeSlot().getTheme().getTitle();
+        String customerName = member.getAccount().getNickname();
+        String customerEmail = member.getAccount().getEmail();
+
+        // 9. 응답 DTO 반환
+        return PaymentReadyResponse.builder()
+                .paymentId(savedPayment.getId())
+                .reservationId(reservation.getId())
+                .orderId(savedPayment.getOrderId())
+                .amount(savedPayment.getAmount())
+                .status(savedPayment.getStatus())
+                .orderName(orderName)
+                .customerName(customerName)
+                .customerEmail(customerEmail)
+                .build();
+    }
 }
