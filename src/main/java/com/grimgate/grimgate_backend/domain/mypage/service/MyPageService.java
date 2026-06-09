@@ -9,6 +9,7 @@ import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageProfileRes
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageReservationResponse;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageStatsResponse;
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
+import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
 import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
 import com.grimgate.grimgate_backend.domain.title.repository.TitleRepository;
 import com.grimgate.grimgate_backend.domain.title.service.TitleService;
@@ -54,7 +55,7 @@ public class MyPageService {
         double successRate = titleService.calcSuccessRate(totalPlayCount, clearedCount);
 
         // 조건에 맞는 칭호 id가 있으면 업데이트
-        Optional<Long> matchingTitleId = titleService.findMatchingTitleId((int) totalPlayCount, successRate);
+        Optional<Long> matchingTitleId = titleService.findMatchingTitleId((int) totalPlayCount, (int) clearedCount, successRate);
         matchingTitleId.ifPresent(member::updateTitleId);
 
         long acquiredAchievementCount = memberAchievementRepository.countByMember_Id(member.getId());
@@ -64,7 +65,10 @@ public class MyPageService {
                 .totalPlayCount((int) totalPlayCount)
                 .successRate((int) successRate)
                 .bestClearTime(reservations.stream()
-                        .filter(r -> Boolean.TRUE.equals(r.getIsCleared()) && r.getClearTime() != null)
+                        .filter(r -> (r.getStatus() == ReservationStatus.CONFIRMED || r.getStatus() == ReservationStatus.COMPLETED)
+                                && r.getTimeSlot().getSlotDate().isBefore(LocalDate.now())
+                                && Boolean.TRUE.equals(r.getIsCleared())
+                                && r.getClearTime() != null)
                         .map(Reservation::getClearTime)
                         .min(LocalTime::compareTo)
                         .orElse(null))
@@ -89,8 +93,14 @@ public class MyPageService {
         return reservations.stream()
                 .filter(r -> {
                     LocalDate slotDate = r.getTimeSlot().getSlotDate();
-                    return "UPCOMING".equals(type) ? !slotDate.isBefore(today) : slotDate.isBefore(today);
+                    if ("UPCOMING".equals(type)) {
+                        return !slotDate.isBefore(today) && r.getStatus() != ReservationStatus.CANCELLED;
+                    }
+                    return slotDate.isBefore(today) && r.getStatus() != ReservationStatus.CANCELLED;
                 })
+                .sorted((a, b) -> "UPCOMING".equals(type)
+                        ? a.getTimeSlot().getSlotDate().compareTo(b.getTimeSlot().getSlotDate())
+                        : b.getTimeSlot().getSlotDate().compareTo(a.getTimeSlot().getSlotDate()))
                 .map(r -> MyPageReservationResponse.builder()
                         .reservationId(r.getId())
                         .themeName(r.getTimeSlot().getTheme().getTitle())

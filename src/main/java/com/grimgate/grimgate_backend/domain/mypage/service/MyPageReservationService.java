@@ -54,7 +54,11 @@ public class MyPageReservationService {
             throw new CustomException(ErrorCode.RESERVATION_NOT_COMPLETED);
         }
         //예약 상태 확인
-        if (reservation.getStatus() != ReservationStatus.COMPLETED) {
+        boolean isPast = reservation.getTimeSlot().getSlotDate().isBefore(LocalDate.now());
+        boolean isCompleted = reservation.getStatus() == ReservationStatus.COMPLETED;
+        boolean isConfirmedAndPast = reservation.getStatus() == ReservationStatus.CONFIRMED && isPast;
+
+        if (!isCompleted && !isConfirmedAndPast) {
             throw new CustomException(ErrorCode.RESERVATION_NOT_COMPLETED);
         }
         //중복 후기 확인

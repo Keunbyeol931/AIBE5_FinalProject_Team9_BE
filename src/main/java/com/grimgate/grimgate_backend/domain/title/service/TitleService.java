@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,7 +57,7 @@ public class TitleService {
     /**
      * 조건에 맞는 칭호 ID 반환
      */
-    public Optional<Long> findMatchingTitleId(int totalPlayCount, double successRate) {
+    public Optional<Long> findMatchingTitleId(int totalPlayCount, int clearedCount, double successRate) {
         List<Title> titles = titleRepository.findAll();
 
         return titles.stream()
@@ -64,11 +65,11 @@ public class TitleService {
                 .filter(title -> title.getMinSuccessRate() <= successRate && successRate <= title.getMaxSuccessRate())
                 .filter(title -> {
                     if (title.getRequiredClearCount() != null) {
-                        return totalPlayCount >= title.getRequiredClearCount();
+                        return clearedCount >= title.getRequiredClearCount();
                     }
                     return true;
                 })
-                .map(Title::getId)
-                .findFirst();
+                .max(Comparator.comparingDouble(Title::getMinSuccessRate))
+                .map(Title::getId);
     }
 }
