@@ -2,8 +2,6 @@ package com.grimgate.grimgate_backend.domain.mypage.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
-import java.time.LocalTime;
-
 @Getter
 @Builder
 public class MyPageStatsResponse {
@@ -15,7 +13,7 @@ public class MyPageStatsResponse {
     private int successRate;
 
     // 최단 클리어 타임(초), 없으면 null
-    private LocalTime bestClearTime;
+    private Integer bestClearTime;
 
     private long acquiredAchievementCount;
 

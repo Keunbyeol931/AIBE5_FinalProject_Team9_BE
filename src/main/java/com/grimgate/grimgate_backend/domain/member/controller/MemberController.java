@@ -27,11 +27,4 @@ public class MemberController {
         return null;
     }
 
-    // 비밀번호 수정
-    @PatchMapping("/password")
-    public ResponseEntity<ApiResponse<?>> updatePassword() {
-        Long accountId = SecurityUtil.getCurrentAccountId();
-        // TODO: 비밀번호 수정 구현
-        return null;
-    }
 }

@@ -71,6 +71,7 @@ public class MyPageService {
                                 && r.getClearTime() != null)
                         .map(Reservation::getClearTime)
                         .min(LocalTime::compareTo)
+                        .map(LocalTime::toSecondOfDay)
                         .orElse(null))
                 .acquiredAchievementCount(acquiredAchievementCount)
                 .totalAchievementCount(totalAchievementCount)
