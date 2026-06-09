@@ -25,11 +25,9 @@ import lombok.NoArgsConstructor;
 /**
  * 결제 정보를 저장하고 관리하는 JPA 엔티티입니다.
  * 
- * <p><b>[이슈 #48 구현 범위 주의사항]</b></p>
- * <ul>
- *   <li>본 이슈에서는 결제 준비(ready) 단계까지만 저장합니다.</li>
- *   <li>결제 승인(confirm), 웹훅(webhook), 취소 및 환불(cancel)에 대한 비즈니스 로직 및 관련 필드 업데이트는 후속 이슈 범위입니다.</li>
- * </ul>
+ * [이슈 #48 구현 범위 주의사항]
+ * - 본 이슈에서는 결제 준비(ready) 단계까지만 저장합니다.
+ * - 결제 승인(confirm), 웹훅(webhook), 취소 및 환불(cancel)에 대한 비즈니스 로직 및 관련 필드 업데이트는 후속 이슈 범위입니다.
  */
 @Entity
 @Table(name = "payment")
