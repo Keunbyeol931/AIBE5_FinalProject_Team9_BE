@@ -158,6 +158,9 @@ public class MyPageActivityService {
             throw new CustomException(ErrorCode.REVIEW_NOT_OWNER);
         }
 
+        // theme rating 재계산
+        Theme theme = review.getTheme();
+
         // 이미지 먼저 삭제
         reviewImageRepository.deleteByReviewId(reviewId);
 
@@ -165,8 +168,6 @@ public class MyPageActivityService {
         reviewRepository.delete(review);
 
 
-        // theme rating 재계산
-        Theme theme = review.getTheme();
         List<Review> remaining = reviewRepository.findByThemeId(theme.getId());
         double average = remaining.stream()
                 .mapToInt(Review::getRating)
