@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimgate.grimgate_backend.domain.payment.dto.PaymentReadyRequest;
 import com.grimgate.grimgate_backend.domain.payment.dto.PaymentReadyResponse;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentConfirmRequest;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentConfirmResponse;
 import com.grimgate.grimgate_backend.domain.payment.entity.PaymentStatus;
 import com.grimgate.grimgate_backend.domain.payment.service.PaymentService;
 import org.junit.jupiter.api.DisplayName;
@@ -109,5 +111,61 @@ class PaymentControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("결제 금액은 0보다 커야 합니다."));
+    }
+
+    @Test
+    @DisplayName("POST /api/payments/confirm - 결제 승인 요청 성공")
+    void confirmPayment_Success() throws Exception {
+        // given
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .paymentKey("toss-key-123")
+                .orderId("order-uuid-xyz")
+                .amount(22000)
+                .build();
+
+        PaymentConfirmResponse response = PaymentConfirmResponse.builder()
+                .paymentId(1L)
+                .reservationId(100L)
+                .orderId("order-uuid-xyz")
+                .amount(22000)
+                .status(PaymentStatus.PAY_SUCCESS)
+                .paymentKey("toss-key-123")
+                .paymentMethod("카드")
+                .paidAt(java.time.LocalDateTime.now())
+                .build();
+
+        when(paymentService.confirmPayment(any(PaymentConfirmRequest.class))).thenReturn(response);
+
+        // when & then
+        mockMvc.perform(post("/api/payments/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("결제 승인이 완료되었습니다."))
+                .andExpect(jsonPath("$.data.paymentId").value(1))
+                .andExpect(jsonPath("$.data.orderId").value("order-uuid-xyz"))
+                .andExpect(jsonPath("$.data.status").value("PAY_SUCCESS"))
+                .andExpect(jsonPath("$.data.paymentKey").value("toss-key-123"))
+                .andExpect(jsonPath("$.data.paymentMethod").value("카드"));
+    }
+
+    @Test
+    @DisplayName("POST /api/payments/confirm - 필수 요청 값 누락 시 400 BAD_REQUEST 반환")
+    void confirmPayment_ValidationFailure_MissingFields() throws Exception {
+        // given
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .paymentKey("") // 빈값
+                .orderId("order-uuid-xyz")
+                .amount(22000)
+                .build();
+
+        // when & then
+        mockMvc.perform(post("/api/payments/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("결제 고유 키(paymentKey)는 필수입니다."));
     }
 }

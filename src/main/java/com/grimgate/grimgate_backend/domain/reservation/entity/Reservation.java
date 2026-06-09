@@ -60,4 +60,11 @@ public class Reservation extends BaseTimeEntity {
 
     @Column(name = "clear_time")
     private LocalTime clearTime;
+
+    /**
+     * 예약을 확정(CONFIRMED) 상태로 변경합니다.
+     */
+    public void confirm() {
+        this.status = ReservationStatus.CONFIRMED;
+    }
 }

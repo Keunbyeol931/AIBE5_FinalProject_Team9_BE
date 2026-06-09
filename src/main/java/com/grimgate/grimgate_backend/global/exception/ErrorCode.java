@@ -57,7 +57,9 @@ public enum ErrorCode {
     // 결제
     INVALID_RESERVATION_STATUS(HttpStatus.BAD_REQUEST, "결제 가능한 예약 상태가 아닙니다."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 요청 금액이 예약 금액과 일치하지 않습니다."),
-    PAYMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "해당 예약에 대한 결제 내역이 이미 존재합니다.");
+    PAYMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "해당 예약에 대한 결제 내역이 이미 존재합니다."),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "결제 내역을 찾을 수 없습니다."),
+    INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "결제 승인이 가능한 상태가 아닙니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
