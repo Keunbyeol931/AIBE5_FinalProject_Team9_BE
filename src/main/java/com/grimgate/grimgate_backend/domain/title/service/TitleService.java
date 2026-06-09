@@ -1,4 +1,4 @@
-package com.grimgate.grimgate_backend.domain.member.service;
+package com.grimgate.grimgate_backend.domain.title.service;
 
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
 import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,7 +17,7 @@ import java.util.Optional;
  */
 @Component
 @RequiredArgsConstructor
-public class TitleCalculator {
+public class TitleService {
 
     private final TitleRepository titleRepository;
 
@@ -26,7 +27,7 @@ public class TitleCalculator {
      */
     public long calcTotalPlayCount(List<Reservation> reservations) {
         return reservations.stream()
-                .filter(r -> r.getStatus() == ReservationStatus.CONFIRMED)
+                .filter(r -> r.getStatus() == ReservationStatus.CONFIRMED || r.getStatus() == ReservationStatus.COMPLETED)
                 .filter(r -> r.getTimeSlot().getSlotDate().isBefore(LocalDate.now()))
                 .count();
     }
@@ -37,7 +38,7 @@ public class TitleCalculator {
      */
     public long calcClearedCount(List<Reservation> reservations) {
         return reservations.stream()
-                .filter(r -> r.getStatus() == ReservationStatus.CONFIRMED)
+                .filter(r -> r.getStatus() == ReservationStatus.CONFIRMED || r.getStatus() == ReservationStatus.COMPLETED)
                 .filter(r -> r.getTimeSlot().getSlotDate().isBefore(LocalDate.now()))
                 .filter(r -> Boolean.TRUE.equals(r.getIsCleared()))
                 .count();
@@ -56,7 +57,7 @@ public class TitleCalculator {
     /**
      * 조건에 맞는 칭호 ID 반환
      */
-    public Optional<Long> findMatchingTitleId(int totalPlayCount, double successRate) {
+    public Optional<Long> findMatchingTitleId(int totalPlayCount, int clearedCount, double successRate) {
         List<Title> titles = titleRepository.findAll();
 
         return titles.stream()
@@ -64,11 +65,11 @@ public class TitleCalculator {
                 .filter(title -> title.getMinSuccessRate() <= successRate && successRate <= title.getMaxSuccessRate())
                 .filter(title -> {
                     if (title.getRequiredClearCount() != null) {
-                        return totalPlayCount >= title.getRequiredClearCount();
+                        return clearedCount >= title.getRequiredClearCount();
                     }
                     return true;
                 })
-                .map(Title::getId)
-                .findFirst();
+                .max(Comparator.comparingDouble(Title::getMinSuccessRate))
+                .map(Title::getId);
     }
 }

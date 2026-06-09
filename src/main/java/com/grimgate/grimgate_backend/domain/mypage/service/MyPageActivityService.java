@@ -1,7 +1,9 @@
 package com.grimgate.grimgate_backend.domain.mypage.service;
 
+import com.grimgate.grimgate_backend.domain.mate.repository.MatePostRepository;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
+import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMatePostResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
 import com.grimgate.grimgate_backend.domain.review.entity.Review;
@@ -13,21 +15,24 @@ import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class MyPageActivityService {
 
     private final MemberRepository memberRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewImageRepository reviewImageRepository;
     private final ThemeRepository themeRepository;
+    private final MatePostRepository matePostRepository;
 
     // 내 후기 조회
     public List<ReviewResponse> getMyReviews(){
@@ -58,6 +63,7 @@ public class MyPageActivityService {
     }
 
     // 내 후기 수정
+    @Transactional
     public ReviewResponse updateMyReview(Long reviewId, ReviewUpdateRequest request){
         Long accountId = SecurityUtil.getCurrentAccountId();
         Member member = memberRepository.findByAccount_Id(accountId)
@@ -79,11 +85,12 @@ public class MyPageActivityService {
 // 기존 이미지 삭제 후 새로 저장
         reviewImageRepository.deleteByReviewId(reviewId);
         if (request.getImageUrls() != null) {
-            List<ReviewImage> images = request.getImageUrls().stream()
-                    .map(url -> ReviewImage.builder()
+            List<String> imageUrls = request.getImageUrls();
+            List<ReviewImage> images = IntStream.range(0, imageUrls.size())
+                    .mapToObj(i -> ReviewImage.builder()
                             .review(review)
-                            .imageUrl(url)
-                            .imageOrder(String.valueOf(request.getImageUrls().indexOf(url) + 1))
+                            .imageUrl(imageUrls.get(i))
+                            .imageOrder(String.valueOf(i + 1))
                             .build())
                     .toList();
             reviewImageRepository.saveAll(images);
@@ -121,7 +128,23 @@ public class MyPageActivityService {
     }
 
 
+    // 내 메이트 모집글 조회
+    public List<MyPageMatePostResponse> getMyMatePosts() {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Member member = memberRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        return matePostRepository.findByMemberIdAndDeletedAtIsNull(
+                        member.getId(),
+                        org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE,
+                                Sort.by(Sort.Direction.DESC, "createdAt")))
+                .stream()
+                .map(MyPageMatePostResponse::from)
+                .toList();
+    }
+
     //내 후기 삭제
+    @Transactional
     public void deleteMyReview(Long reviewId) {
         Long accountId = SecurityUtil.getCurrentAccountId();
 
@@ -135,6 +158,9 @@ public class MyPageActivityService {
             throw new CustomException(ErrorCode.REVIEW_NOT_OWNER);
         }
 
+        // theme rating 재계산
+        Theme theme = review.getTheme();
+
         // 이미지 먼저 삭제
         reviewImageRepository.deleteByReviewId(reviewId);
 
@@ -142,8 +168,6 @@ public class MyPageActivityService {
         reviewRepository.delete(review);
 
 
-        // theme rating 재계산
-        Theme theme = review.getTheme();
         List<Review> remaining = reviewRepository.findByThemeId(theme.getId());
         double average = remaining.stream()
                 .mapToInt(Review::getRating)
@@ -151,6 +175,7 @@ public class MyPageActivityService {
                 .orElse(0.0);
         double newRating = Math.round(average * 10.0) / 10.0;
         theme.updateRating(newRating, remaining.size());
+        themeRepository.save(theme);
 
     }
 

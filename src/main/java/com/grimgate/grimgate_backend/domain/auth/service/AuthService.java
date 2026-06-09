@@ -256,6 +256,49 @@ public class AuthService {
         return "로그아웃 되었습니다.";
     }
 
+    // 회원 탈퇴
+    @Transactional
+    public void withdraw(Long accountId, String accessToken) {
+        // Redis에서 리프레시 토큰 삭제 (logout() 패턴 재사용)
+        refreshTokenRepository.deleteById(String.valueOf(accountId));
+
+        // Access Token 블랙리스트 등록 (logout() 패턴 재사용)
+        if (StringUtils.hasText(accessToken)) {
+            long remainingMs = jwtProvider.getRemainingExpiration(accessToken);
+            if (remainingMs > 0) {
+                redisTemplate.opsForValue().set(
+                        BLACKLIST_PREFIX + accessToken,
+                        "withdraw",
+                        remainingMs,
+                        TimeUnit.MILLISECONDS
+                );
+            }
+        }
+
+        // 계정 조회 후 탈퇴 처리 (soft delete + 이메일 변조)
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        account.withdraw();
+        accountRepository.save(account);
+    }
+
+    // 비밀번호 변경
+    @Transactional
+    public void changePassword(Long accountId, ChangePasswordRequest request) {
+        // 계정 조회
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
+            throw new CustomException(ErrorCode.INVALID_PASSWORD);
+        }
+
+        // 새 비밀번호 암호화 후 업데이트
+        account.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+    }
+
     // 이메일 중복 확인
     public void checkEmail(String email) {
         if (accountRepository.existsByEmail(email)) {

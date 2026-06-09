@@ -60,4 +60,31 @@ public class Account extends BaseTimeEntity {
     private boolean emailVisible = true;
 
     private LocalDateTime deletedAt;
+
+    /**
+     * 프로필 수정: null이 아닌 파라미터만 해당 필드 업데이트
+     */
+    public void updateProfile(String nickname, Integer age, String gender,
+                              Boolean ageVisible, Boolean genderVisible, Boolean emailVisible) {
+        if (nickname != null) this.nickname = nickname;
+        if (age != null) this.age = age;
+        if (gender != null) this.gender = gender;
+        if (ageVisible != null) this.ageVisible = ageVisible;
+        if (genderVisible != null) this.genderVisible = genderVisible;
+        if (emailVisible != null) this.emailVisible = emailVisible;
+    }
+
+    // 비밀번호 변경
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    /**
+     * 회원 탈퇴 처리: deletedAt 세팅 + email unique 제약 충돌 방지를 위해 이메일 변조
+     * 변조 형식: 원본이메일_deleted_계정ID
+     */
+    public void withdraw() {
+        this.deletedAt = LocalDateTime.now();
+        this.email = this.email + "_deleted_" + this.id;
+    }
 }
