@@ -5,3 +5,6 @@ spring:
   profiles:
     active: local
     include: secret
+
+toss:
+  secret-key: ${TOSS_SECRET_KEY:dummy}

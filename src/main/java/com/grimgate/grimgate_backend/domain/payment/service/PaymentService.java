@@ -7,14 +7,21 @@ import com.grimgate.grimgate_backend.domain.payment.dto.PaymentReadyResponse;
 import com.grimgate.grimgate_backend.domain.payment.entity.Payment;
 import com.grimgate.grimgate_backend.domain.payment.entity.PaymentStatus;
 import com.grimgate.grimgate_backend.domain.payment.repository.PaymentRepository;
+import com.grimgate.grimgate_backend.domain.payment.client.TossPaymentsClient;
+import com.grimgate.grimgate_backend.domain.payment.client.TossPaymentsClient.TossConfirmResponseDto;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentConfirmRequest;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentConfirmResponse;
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
 import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
 import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +33,8 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
     private final MemberRepository memberRepository;
+    private final TossPaymentsClient tossPaymentsClient;
+    private final PaymentConfirmHelper paymentConfirmHelper;
 
     /**
      * 결제 준비(Ready) 단계를 처리합니다.
@@ -101,5 +110,62 @@ public class PaymentService {
                 .customerName(customerName)
                 .customerEmail(customerEmail)
                 .build();
+    }
+
+    /**
+     * 결제 승인(Confirm) 단계를 처리합니다.
+     * 외부 PG API 호출로 인한 DB 커넥션 풀 고갈을 방지하고자 트랜잭션 없이 시작하여 내부 전이 메서드들을 호출합니다.
+     *
+     * @param request 결제 승인 요청 DTO
+     * @return 결제 승인 완료 결과 응답 DTO
+     */
+    public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
+        // 1. orderId 기준 Payment 조회
+        Payment payment = paymentRepository.findByOrderId(request.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 2. 중복 승인 방지 및 멱등성 보장 (이미 PAY_SUCCESS 상태라면 Toss API를 타지 않고 즉시 반환)
+        if (payment.getStatus() == PaymentStatus.PAY_SUCCESS) {
+            return PaymentConfirmResponse.of(payment);
+        }
+
+        // 3. Payment 상태 PAY_PENDING 검증
+        if (payment.getStatus() != PaymentStatus.PAY_PENDING) {
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        // 4. 요청 금액(amount)과 결제 객체 금액 일치 검증 (위변조 2차 검증)
+        if (!payment.getAmount().equals(request.getAmount())) {
+            throw new CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+        }
+
+        try {
+            // 5. 토스페이먼츠 승인 API 연동 호출
+            TossConfirmResponseDto tossResponse = tossPaymentsClient.confirm(
+                    request.getPaymentKey(),
+                    request.getOrderId(),
+                    request.getAmount()
+            );
+
+            // 6. 승인 성공 시: paymentKey 저장, PAY_SUCCESS 변경, 예약 CONFIRMED 변경, 타임슬롯 SLOT_FULL 변경
+            LocalDateTime paidAt = LocalDateTime.parse(tossResponse.approvedAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            paymentConfirmHelper.saveConfirmSuccess(
+                    payment.getId(),
+                    request.getPaymentKey(),
+                    tossResponse.method(),
+                    paidAt
+            );
+
+            // 데이터 정합성이 확보된 최종 객체 재조회
+            Payment confirmedPayment = paymentRepository.findById(payment.getId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+            return PaymentConfirmResponse.of(confirmedPayment);
+
+        } catch (Exception e) {
+            // 7. 승인 실패 시: PAY_FAILED 처리 및 실패 사유 기록 (예약 및 슬롯 상태는 유지하여 스케줄러/TTL 처리 위임)
+            paymentConfirmHelper.saveConfirmFailure(payment.getId(), e.getMessage());
+            throw new CustomException(HttpStatus.BAD_REQUEST, "결제 승인 과정에서 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 }

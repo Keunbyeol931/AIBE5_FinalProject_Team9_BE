@@ -114,4 +114,30 @@ public class Payment extends BaseTimeEntity {
      */
     @Column(name = "cancel_reason")
     private String cancelReason;
+
+    /**
+     * 결제 승인 완료 처리를 수행합니다.
+     * 결제 상태를 PAY_SUCCESS로 변경하고 결제 승인 관련 정보를 저장합니다.
+     *
+     * @param paymentKey PG사 결제 고유 키값
+     * @param paymentMethod 결제 수단
+     * @param paidAt 결제 승인 시각
+     */
+    public void confirm(String paymentKey, String paymentMethod, LocalDateTime paidAt) {
+        this.paymentKey = paymentKey;
+        this.paymentMethod = paymentMethod;
+        this.status = PaymentStatus.PAY_SUCCESS;
+        this.paidAt = paidAt;
+    }
+
+    /**
+     * 결제 승인 실패 처리를 수행합니다.
+     * 결제 상태를 PAY_FAILED로 변경하고 실패 사유를 기록합니다.
+     *
+     * @param cancelReason 결제 실패 사유
+     */
+    public void fail(String cancelReason) {
+        this.status = PaymentStatus.PAY_FAILED;
+        this.cancelReason = cancelReason;
+    }
 }
