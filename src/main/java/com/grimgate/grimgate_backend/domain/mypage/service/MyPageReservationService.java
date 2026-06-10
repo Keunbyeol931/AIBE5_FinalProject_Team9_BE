@@ -108,6 +108,7 @@ public class MyPageReservationService {
                 .tags(review.getTags())
                 .content(review.getContent())
                 .spoiler(review.getSpoiler())
+                .createdAt(review.getCreatedAt())
                 .imageUrls(request.getImageUrls())
                 .build();
     }

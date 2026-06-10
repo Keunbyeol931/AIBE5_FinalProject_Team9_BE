@@ -67,7 +67,7 @@ public enum ErrorCode {
     MATE_PARTICIPANT_CANCEL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "모집이 완료되었거나 마감된 모집글은 참여를 취소할 수 없습니다."),
     MATE_PARTICIPANT_LIST_FORBIDDEN(HttpStatus.FORBIDDEN, "참여자 목록은 작성자만 조회할 수 있습니다."),
 
-    INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST, "최소 인원은 최대 인원보다 클 수 없습니다.");
+
     INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST, "최소 인원은 최대 인원보다 클 수 없습니다."),
 
     // 결제
