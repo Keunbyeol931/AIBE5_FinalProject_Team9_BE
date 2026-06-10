@@ -100,6 +100,12 @@ public class MyPageReservationService {
             reviewImageRepository.saveAll(images);
         }
 
+        // 저장된 이미지 조회
+        List<String> imageUrls = reviewImageRepository.findByReview_Id(review.getId())
+                .stream()
+                .map(ReviewImage::getImageUrl)
+                .toList();
+
         return ReviewResponse.builder()
                 .nickname(member.getAccount().getNickname())
                 .rating(review.getRating())
@@ -109,7 +115,7 @@ public class MyPageReservationService {
                 .content(review.getContent())
                 .spoiler(review.getSpoiler())
                 .createdAt(review.getCreatedAt())
-                .imageUrls(request.getImageUrls())
+                .imageUrls(imageUrls)
                 .build();
     }
 

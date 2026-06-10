@@ -50,7 +50,7 @@ public record AiRecommendResponse(
     public static AiRecommendResponse fallback(List<Theme> themes) {
         return new AiRecommendResponse(
                 "recommendation",
-                "AI 추천이 일시적으로 어려워 관련 테마를 보여드려요.",
+                "AI 추천이 일시적으로 불가능해 추천 테마 목록을 제공해드려요.",
                 themes.stream().map(ThemeCard::from).toList()
         );
     }
