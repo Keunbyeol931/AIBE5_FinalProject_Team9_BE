@@ -24,7 +24,6 @@ public class AiRecommendController {
     public ResponseEntity<AiRecommendResponse> recommend(
             @RequestBody AiRecommendRequest request
     ) {
-        System.out.println("AI 추천 호출");
         return ResponseEntity.ok(aiRecommendService.recommend(request));
     }
 

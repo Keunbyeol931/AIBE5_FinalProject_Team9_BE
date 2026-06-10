@@ -77,7 +77,8 @@ public class ThemeService {
                         || condition.getKeyword().isEmpty()
                         || theme.getTitle().contains(condition.getKeyword())
                         || theme.getDescription().contains(condition.getKeyword())
-                        || theme.getTags().contains(condition.getKeyword()))
+                        || (theme.getTags() != null
+                        && theme.getTags().contains(condition.getKeyword())))
 
                 .map(theme -> new ThemeResponse(
                         theme.getId(),
