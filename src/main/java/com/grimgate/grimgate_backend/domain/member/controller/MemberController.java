@@ -19,12 +19,6 @@ public class MemberController {
         return null;
     }
 
-    // 메이트 참여 목록 조회
-    @GetMapping("/mate-participations")
-    public ResponseEntity<ApiResponse<?>> getMateParticipations() {
-        Long accountId = SecurityUtil.getCurrentAccountId();
-        // TODO: 메이트 참여 목록 조회 구현
-        return null;
-    }
+
 
 }

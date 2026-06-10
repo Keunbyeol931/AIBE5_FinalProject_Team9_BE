@@ -21,6 +21,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentWebhookRequest;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +42,10 @@ public class PaymentService {
     private final MemberRepository memberRepository;
     private final TossPaymentsClient tossPaymentsClient;
     private final PaymentConfirmHelper paymentConfirmHelper;
+    private final ObjectMapper objectMapper;
+
+    @Value("${toss.webhook-secret-key:dummy_webhook_secret_key}")
+    private String webhookSecretKey;
 
     /**
      * 결제 준비(Ready) 단계를 처리합니다.
@@ -166,6 +177,95 @@ public class PaymentService {
             // 7. 승인 실패 시: PAY_FAILED 처리 및 실패 사유 기록 (예약 및 슬롯 상태는 유지하여 스케줄러/TTL 처리 위임)
             paymentConfirmHelper.saveConfirmFailure(payment.getId(), e.getMessage());
             throw new CustomException(HttpStatus.BAD_REQUEST, "결제 승인 과정에서 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    // 토스페이먼츠 웹훅 요청을 수신하여 서명을 검증하고 결제 상태를 업데이트합니다.
+    @Transactional
+    public void processWebhook(String payload, String signature, String transmissionTime) {
+        // 웹훅 요청 서명 검증 수행
+        verifyWebhookSignature(payload, signature, transmissionTime);
+
+        PaymentWebhookRequest webhookRequest;
+        try {
+            webhookRequest = objectMapper.readValue(payload, PaymentWebhookRequest.class);
+        } catch (Exception e) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "웹훅 바디 파싱에 실패했습니다.");
+        }
+
+        // eventType이 결제 상태 변경 이벤트(PAYMENT_STATUS_CHANGED)인지 확인
+        if (!"PAYMENT_STATUS_CHANGED".equals(webhookRequest.getEventType())) {
+            return;
+        }
+
+        PaymentWebhookRequest.WebhookData data = webhookRequest.getData();
+        if (data == null) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "웹훅 상세 데이터가 존재하지 않습니다.");
+        }
+
+        // orderId 기준 결제 정보 조회
+        Payment payment = paymentRepository.findByOrderId(data.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        String status = data.getStatus();
+        if ("DONE".equals(status)) {
+            LocalDateTime approvedAt = null;
+            if (data.getApprovedAt() != null) {
+                approvedAt = LocalDateTime.parse(data.getApprovedAt(), DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            }
+            paymentConfirmHelper.saveWebhookSuccess(
+                    payment.getId(),
+                    data.getPaymentKey(),
+                    data.getMethod(),
+                    approvedAt
+            );
+        } else if ("ABORTED".equals(status)) {
+            paymentConfirmHelper.saveWebhookFailure(payment.getId(), "웹훅 수신: 결제 실패");
+        } else if ("EXPIRED".equals(status)) {
+            paymentConfirmHelper.saveWebhookTimeout(payment.getId());
+        }
+    }
+
+    // 토스페이먼츠 웹훅 서명 검증을 진행합니다.
+    private void verifyWebhookSignature(String payload, String signature, String transmissionTime) {
+        if (signature == null || transmissionTime == null) {
+            throw new CustomException(ErrorCode.WEBHOOK_VERIFICATION_FAILED);
+        }
+
+        try {
+            // 검증 대상 메시지 생성
+            String message = payload + ":" + transmissionTime;
+
+            // HMAC SHA-256 해시 인스턴스 생성 및 키 초기화
+            Mac sha256HMAC = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(
+                    webhookSecretKey.getBytes(StandardCharsets.UTF_8),
+                    "HmacSHA256"
+            );
+            sha256HMAC.init(secretKeySpec);
+
+            // 해시값 계산 및 Base64 인코딩
+            byte[] hashBytes = sha256HMAC.doFinal(message.getBytes(StandardCharsets.UTF_8));
+            String generatedSignature = Base64.getEncoder().encodeToString(hashBytes);
+
+            // 콤마로 구분된 헤더 서명과 생성한 서명 비교
+            String[] signatures = signature.split(",");
+            boolean isMatched = false;
+            for (String sig : signatures) {
+                String actualSignature = sig.trim().startsWith("v1:") ? sig.trim().substring(3) : sig.trim();
+                if (actualSignature.equals(generatedSignature)) {
+                    isMatched = true;
+                    break;
+                }
+            }
+
+            if (!isMatched) {
+                throw new CustomException(ErrorCode.WEBHOOK_VERIFICATION_FAILED);
+            }
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.WEBHOOK_VERIFICATION_FAILED);
         }
     }
 }
