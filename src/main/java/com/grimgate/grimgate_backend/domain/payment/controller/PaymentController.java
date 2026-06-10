@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -48,5 +49,16 @@ public class PaymentController {
     ) {
         PaymentConfirmResponse response = paymentService.confirmPayment(request);
         return ResponseEntity.ok(ApiResponse.success("결제 승인이 완료되었습니다.", response));
+    }
+
+    // 토스페이먼츠 웹훅 요청을 수신하여 결제 상태를 동기화합니다.
+    @PostMapping("/webhook")
+    public ResponseEntity<Void> handleWebhook(
+            @RequestBody String payload,
+            @RequestHeader(value = "tosspayments-webhook-signature", required = false) String signature,
+            @RequestHeader(value = "tosspayments-webhook-transmission-time", required = false) String transmissionTime
+    ) {
+        paymentService.processWebhook(payload, signature, transmissionTime);
+        return ResponseEntity.ok().build();
     }
 }

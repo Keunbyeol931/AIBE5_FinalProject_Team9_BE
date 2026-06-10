@@ -79,4 +79,85 @@ public class PaymentConfirmHelper {
 
         payment.fail(errorMessage);
     }
+
+    // 결제 성공 웹훅(DONE) 수신 처리를 수행합니다.
+    @Transactional
+    public void saveWebhookSuccess(Long paymentId, String paymentKey, String paymentMethod, LocalDateTime paidAt) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 멱등성 처리: 이미 성공 상태인 경우 아무 작업도 하지 않고 리턴
+        if (payment.getStatus() == PaymentStatus.PAY_SUCCESS) {
+            return;
+        }
+
+        // PAY_PENDING 일 때만 성공 상태로 전이하고 관련 예약/슬롯 처리
+        if (payment.getStatus() == PaymentStatus.PAY_PENDING) {
+            payment.confirm(paymentKey, paymentMethod, paidAt);
+
+            Reservation reservation = payment.getReservation();
+            reservation.confirm();
+
+            // 기존 승인 방식과 동일하게 SLOT_HELD 상태인 경우에만 SLOT_FULL로 변경
+            timeSlotRepository.updateStatus(
+                    reservation.getTimeSlot().getId(),
+                    TimeSlotStatus.SLOT_FULL,
+                    TimeSlotStatus.SLOT_HELD,
+                    LocalDateTime.now()
+            );
+        } else {
+            // PAY_FAILED, PAYMENT_TIMEOUT 등 이미 최종 상태로 처리된 경우 성공 보정하지 않고 예외 처리
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+    }
+
+    // 결제 실패 웹훅(ABORTED) 수신 처리를 수행합니다.
+    @Transactional
+    public void saveWebhookFailure(Long paymentId, String cancelReason) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 멱등성 처리: 이미 실패 상태인 경우 아무 작업도 하지 않고 리턴
+        if (payment.getStatus() == PaymentStatus.PAY_FAILED) {
+            return;
+        }
+
+        // 재처리 방지: 이미 성공 완료된 결제는 실패 처리할 수 없음
+        if (payment.getStatus() == PaymentStatus.PAY_SUCCESS) {
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        // PAY_PENDING 인 경우에만 실패 상태로 전이
+        if (payment.getStatus() == PaymentStatus.PAY_PENDING) {
+            payment.fail(cancelReason);
+        } else {
+            // PAYMENT_TIMEOUT 등 이미 최종 상태로 처리된 경우 예외 처리
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+    }
+
+    // 결제 만료 웹훅(EXPIRED) 수신 처리를 수행합니다.
+    @Transactional
+    public void saveWebhookTimeout(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // 멱등성 처리: 이미 타임아웃 상태인 경우 아무 작업도 하지 않고 리턴
+        if (payment.getStatus() == PaymentStatus.PAYMENT_TIMEOUT) {
+            return;
+        }
+
+        // 재처리 방지: 이미 성공 완료된 결제는 만료 처리할 수 없음
+        if (payment.getStatus() == PaymentStatus.PAY_SUCCESS) {
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        // PAY_PENDING 인 경우에만 만료 상태로 전이
+        if (payment.getStatus() == PaymentStatus.PAY_PENDING) {
+            payment.timeout();
+        } else {
+            // PAY_FAILED 등 이미 최종 상태로 처리된 경우 예외 처리
+            throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+    }
 }

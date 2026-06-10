@@ -140,4 +140,9 @@ public class Payment extends BaseTimeEntity {
         this.status = PaymentStatus.PAY_FAILED;
         this.cancelReason = cancelReason;
     }
+
+    // 결제 시간 초과(timeout) 처리를 수행하며 상태를 PAYMENT_TIMEOUT으로 변경합니다.
+    public void timeout() {
+        this.status = PaymentStatus.PAYMENT_TIMEOUT;
+    }
 }

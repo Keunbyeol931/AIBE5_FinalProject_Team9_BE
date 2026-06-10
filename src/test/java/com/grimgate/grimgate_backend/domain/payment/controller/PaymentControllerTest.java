@@ -168,4 +168,23 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("결제 고유 키(paymentKey)는 필수입니다."));
     }
+
+    @Test
+    @DisplayName("POST /api/payments/webhook - 웹훅 요청 성공")
+    void handleWebhook_Success() throws Exception {
+        // given
+        String payload = "{\"eventType\":\"PAYMENT_STATUS_CHANGED\"}";
+        String signature = "v1:signature-string";
+        String transmissionTime = "2026-06-10T12:00:10+09:00";
+
+        // when & then
+        mockMvc.perform(post("/api/payments/webhook")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("tosspayments-webhook-signature", signature)
+                        .header("tosspayments-webhook-transmission-time", transmissionTime)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(paymentService).processWebhook(payload, signature, transmissionTime);
+    }
 }
