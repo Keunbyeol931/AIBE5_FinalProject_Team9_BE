@@ -18,6 +18,9 @@ public class MyPageMatePostResponse {
     private int currentPeople;
     private int maxPeople;
     private LocalDateTime createdAt;
+    // 분위기 태그 (콤마로 직렬화된 문자열)
+    private String tags;
+    private String imageUrl;
 
     public static MyPageMatePostResponse from(MatePost matePost) {
         return MyPageMatePostResponse.builder()
@@ -28,6 +31,8 @@ public class MyPageMatePostResponse {
                 .currentPeople(matePost.getCurrentPeople())
                 .maxPeople(matePost.getMaxPeople())
                 .createdAt(matePost.getCreatedAt())
+                .tags(matePost.getTags())
+                .imageUrl(matePost.getImageUrl())
                 .build();
     }
 }
