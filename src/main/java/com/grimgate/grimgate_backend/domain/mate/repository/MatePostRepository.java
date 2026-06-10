@@ -2,15 +2,20 @@ package com.grimgate.grimgate_backend.domain.mate.repository;
 
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePost;
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePostStatus;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -25,6 +30,14 @@ public interface MatePostRepository
     long countByCreatedAtGreaterThanEqualAndDeletedAtIsNull(LocalDateTime since);
 
     Page<MatePost> findByMemberIdAndDeletedAtIsNull(Long memberId, Pageable pageable);
+
+    /**
+     * 참여/취소/강퇴 시 currentPeople 갱신을 직렬화하기 위한 비관적 쓰기 락 조회.
+     * 동시 참여 요청에서 정원 초과 / lock acquisition 충돌을 방지한다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from MatePost p where p.id = :id")
+    Optional<MatePost> findByIdForUpdate(@Param("id") Long id);
 
     /**
      * 동적 필터 Specification.

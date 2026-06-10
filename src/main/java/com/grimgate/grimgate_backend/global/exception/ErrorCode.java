@@ -34,6 +34,7 @@ public enum ErrorCode {
     TITLE_NOT_FOUND(HttpStatus.NOT_FOUND, "칭호를 찾을 수 없습니다."),
 
     //마이페이지 후기
+    INVALID_RESERVATION_TYPE(HttpStatus.BAD_REQUEST, "예약 조회 타입은 UPCOMING 또는 PAST만 허용됩니다."),
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "예약을 찾을 수 없습니다."),
     RESERVATION_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "완료된 예약만 후기 작성이 가능합니다."),
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 후기를 작성한 예약입니다."),
@@ -53,7 +54,26 @@ public enum ErrorCode {
     MATE_POST_INVALID_DEADLINE(HttpStatus.BAD_REQUEST, "마감일은 모임 시간보다 늦을 수 없습니다."),
     MATE_POST_INVALID_MEETING_TIME(HttpStatus.BAD_REQUEST, "모임 시간은 현재 이후여야 합니다."),
     MATE_POST_INVALID_OPEN_CHAT_URL(HttpStatus.BAD_REQUEST, "카카오 오픈채팅 URL 형식이 올바르지 않습니다."),
-    INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST, "최소 인원은 최대 인원보다 클 수 없습니다.");
+
+    // 메이트 참여
+    MATE_PARTICIPANT_NOT_FOUND(HttpStatus.NOT_FOUND, "참여 정보를 찾을 수 없습니다."),
+    MATE_PARTICIPANT_ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여 중인 모집글입니다."),
+    MATE_PARTICIPANT_AUTHOR_CANNOT_JOIN(HttpStatus.BAD_REQUEST, "작성자는 자신의 모집글에 참여할 수 없습니다."),
+    MATE_PARTICIPANT_FULL(HttpStatus.CONFLICT, "모집 인원이 모두 찼습니다."),
+    MATE_PARTICIPANT_NOT_RECRUITING(HttpStatus.BAD_REQUEST, "현재 참여 가능한 상태가 아닙니다."),
+    MATE_PARTICIPANT_NOT_JOINED(HttpStatus.BAD_REQUEST, "참여 중이 아닙니다."),
+    MATE_PARTICIPANT_KICK_FORBIDDEN(HttpStatus.FORBIDDEN, "작성자만 참여자를 내보낼 수 있습니다."),
+    MATE_PARTICIPANT_KICK_SELF(HttpStatus.BAD_REQUEST, "작성자 본인은 강퇴할 수 없습니다."),
+    MATE_PARTICIPANT_DEADLINE_PASSED(HttpStatus.BAD_REQUEST, "모집 마감이 지난 모집글에는 참여할 수 없습니다."),
+    MATE_PARTICIPANT_CANCEL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "모집이 완료되었거나 마감된 모집글은 참여를 취소할 수 없습니다."),
+    MATE_PARTICIPANT_LIST_FORBIDDEN(HttpStatus.FORBIDDEN, "참여자 목록은 작성자만 조회할 수 있습니다."),
+
+    INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST, "최소 인원은 최대 인원보다 클 수 없습니다."),
+
+    // 결제
+    INVALID_RESERVATION_STATUS(HttpStatus.BAD_REQUEST, "결제 가능한 예약 상태가 아닙니다."),
+    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 요청 금액이 예약 금액과 일치하지 않습니다."),
+    PAYMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "해당 예약에 대한 결제 내역이 이미 존재합니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

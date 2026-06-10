@@ -7,7 +7,11 @@ import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
 import com.grimgate.grimgate_backend.global.response.ApiResponse;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsResponse;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -65,4 +69,15 @@ public class OwnerController {
         Page<OwnerReservationResponse> response = ownerService.searchReservations(request, pageable);
         return ResponseEntity.ok(ApiResponse.success("예약 목록 조회가 완료되었습니다.", response));
     }
+
+    // 예약 통계 조회
+    @GetMapping("/reservations/stats")
+    public ResponseEntity<ApiResponse<OwnerReservationStatsResponse>> getReservationStats(
+            @RequestParam(value = "date_from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(value = "date_to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo
+    ) {
+        OwnerReservationStatsResponse response = ownerService.getReservationStats(dateFrom, dateTo);
+        return ResponseEntity.ok(ApiResponse.success("예약 통계 조회가 완료되었습니다.", response));
+    }
 }
+

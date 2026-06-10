@@ -12,14 +12,16 @@ import com.grimgate.grimgate_backend.domain.review.entity.ReviewImage;
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageRepository;
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
+import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class MyPageReservationService {
     private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
     private final ReviewImageRepository reviewImageRepository;
+    private final ThemeRepository themeRepository;
 
 
     //후기 작성
@@ -46,14 +49,14 @@ public class MyPageReservationService {
         if (!reservation.getMember().getId().equals(member.getId())) {
             throw new CustomException(ErrorCode.REVIEW_NOT_OWNER);
         }
-        //지난 예약인지 확인
-        if (!reservation.getTimeSlot().getSlotDate().isBefore(LocalDate.now())) {
-            throw new CustomException(ErrorCode.RESERVATION_NOT_COMPLETED);
-        }
 
-        // 취소된 예약 검증 추가
-        if (reservation.getStatus() == ReservationStatus.CANCELLED) {
-            throw new CustomException(ErrorCode.RESERVATION_CANCELLED);
+        //예약 상태 확인
+        boolean isPast = reservation.getTimeSlot().getSlotDate().isBefore(LocalDate.now());
+        boolean isCompleted = reservation.getStatus() == ReservationStatus.COMPLETED;
+        boolean isConfirmedAndPast = reservation.getStatus() == ReservationStatus.CONFIRMED && isPast;
+
+        if (!isCompleted && !isConfirmedAndPast) {
+            throw new CustomException(ErrorCode.RESERVATION_NOT_COMPLETED);
         }
         //중복 후기 확인
         if (reviewRepository.existsByReservationId(request.getReservationId())) {
@@ -71,13 +74,24 @@ public class MyPageReservationService {
         Review review = Review.create(member, theme, reservation, request);
         reviewRepository.save(review);
 
+        // theme rating 재계산
+        List<Review> allReviews = reviewRepository.findByThemeId(theme.getId());
+        double average = allReviews.stream()
+                .mapToInt(Review::getRating)
+                .average()
+                .orElse(0.0);
+        double newRating = Math.round(average * 10.0) / 10.0;
+        theme.updateRating(newRating, allReviews.size());
+        themeRepository.save(theme);
+
         // 이미지 저장
         if (request.getImageUrls() != null ) {
-            List<ReviewImage> images = request.getImageUrls().stream()
-                    .map(url -> ReviewImage.builder()
+            List<String> imageUrls = request.getImageUrls();
+            List<ReviewImage> images = IntStream.range(0, imageUrls.size())
+                    .mapToObj(i -> ReviewImage.builder()
                             .review(review)
-                            .imageUrl(url)
-                            .imageOrder(String.valueOf(request.getImageUrls().indexOf(url) + 1))
+                            .imageUrl(imageUrls.get(i))
+                            .imageOrder(String.valueOf(i + 1))
                             .build())
                     .toList();
             reviewImageRepository.saveAll(images);

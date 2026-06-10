@@ -191,6 +191,9 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
+        // 실제 남은 TTL 조회 (초 단위)
+        Long remainingTtl = redisTemplate.getExpire("refresh_token:" + accountId, TimeUnit.SECONDS);
+
         // 기존 Redis 키 삭제 (RTR)
         refreshTokenRepository.delete(stored);
 
@@ -202,12 +205,13 @@ public class AuthService {
         String newAccessToken = jwtProvider.generateAccessToken(accountId, account.getRole().name());
         String newRefreshToken = jwtProvider.generateRefreshToken(accountId);
 
-        // Redis에 새 리프레시 토큰 저장 (기존 TTL 유지)
+        // Redis에 새 리프레시 토큰 저장 (실제 남은 TTL 유지, 조회 실패 시 원래 TTL 사용)
+        long ttlToApply = (remainingTtl != null && remainingTtl > 0) ? remainingTtl : stored.getTtl();
         RefreshToken newRefreshTokenEntity = RefreshToken.builder()
                 .id(String.valueOf(accountId))
                 .accountId(accountId)
                 .token(newRefreshToken)
-                .ttl(stored.getTtl())
+                .ttl(ttlToApply)
                 .build();
 
         refreshTokenRepository.save(newRefreshTokenEntity);
@@ -250,6 +254,49 @@ public class AuthService {
         }
 
         return "로그아웃 되었습니다.";
+    }
+
+    // 회원 탈퇴
+    @Transactional
+    public void withdraw(Long accountId, String accessToken) {
+        // Redis에서 리프레시 토큰 삭제 (logout() 패턴 재사용)
+        refreshTokenRepository.deleteById(String.valueOf(accountId));
+
+        // Access Token 블랙리스트 등록 (logout() 패턴 재사용)
+        if (StringUtils.hasText(accessToken)) {
+            long remainingMs = jwtProvider.getRemainingExpiration(accessToken);
+            if (remainingMs > 0) {
+                redisTemplate.opsForValue().set(
+                        BLACKLIST_PREFIX + accessToken,
+                        "withdraw",
+                        remainingMs,
+                        TimeUnit.MILLISECONDS
+                );
+            }
+        }
+
+        // 계정 조회 후 탈퇴 처리 (soft delete + 이메일 변조)
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        account.withdraw();
+        accountRepository.save(account);
+    }
+
+    // 비밀번호 변경
+    @Transactional
+    public void changePassword(Long accountId, ChangePasswordRequest request) {
+        // 계정 조회
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
+            throw new CustomException(ErrorCode.INVALID_PASSWORD);
+        }
+
+        // 새 비밀번호 암호화 후 업데이트
+        account.updatePassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
     // 이메일 중복 확인

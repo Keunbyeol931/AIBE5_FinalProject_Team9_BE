@@ -7,6 +7,7 @@ import com.grimgate.grimgate_backend.domain.mate.dto.MatePostStatsResponse;
 import com.grimgate.grimgate_backend.domain.mate.dto.MatePostUpdateRequest;
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePost;
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePostStatus;
+import com.grimgate.grimgate_backend.domain.mate.repository.MateParticipantRepository;
 import com.grimgate.grimgate_backend.domain.mate.repository.MatePostRepository;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
@@ -50,6 +51,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MatePostService {
 
     private final MatePostRepository matePostRepository;
+    private final MateParticipantRepository participantRepository;
     private final MemberRepository memberRepository;
     private final ThemeRepository themeRepository;
 
@@ -178,7 +180,10 @@ public class MatePostService {
         if (!post.isAuthor(author.getId())) {
             throw new CustomException(ErrorCode.MATE_POST_FORBIDDEN);
         }
+        // 1) 따로 모집글 먼저 soft delete — 이 시점에 dirty checking 으로 flush 해둔다
         post.softDelete();
+        // 2) 활성 참여자 일괄 취소 — bulk update 가 영속성 컨텍스트를 비워도 이미 post 변경은 flush 됨
+        participantRepository.cancelAllJoinedByMatePostId(post.getId(), LocalDateTime.now());
     }
 
     /* ===== Stats ===== */

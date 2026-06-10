@@ -58,6 +58,7 @@ public class SecurityConfig {
                                 "/api/auth/login/member",
                                 "/api/auth/login/manager",
                                 "/api/auth/refresh",
+                                "/api/auth/logout",
                                 "/api/auth/oauth/google",
                                 "/api/auth/password/reset-request",
                                 "/api/auth/password/reset"
