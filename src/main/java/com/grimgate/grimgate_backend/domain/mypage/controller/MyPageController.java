@@ -1,6 +1,8 @@
 package com.grimgate.grimgate_backend.domain.mypage.controller;
 
 import com.grimgate.grimgate_backend.domain.achievement.service.AchievementService;
+import com.grimgate.grimgate_backend.domain.mate.dto.MateParticipantResponse;
+import com.grimgate.grimgate_backend.domain.mate.service.MateParticipantService;
 import com.grimgate.grimgate_backend.domain.mypage.dto.request.MyPageProfileUpdateRequest;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageAchievementResponse;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMainResponse;
@@ -34,6 +36,7 @@ public class MyPageController {
     private final AchievementService achievementService;
     private final MyPageReservationService mypageReservationService;
     private final MyPageActivityService mypageActivityService;
+    private final MateParticipantService mateParticipantService;
 
     // 마이페이지 메인 조회 (프로필 + 통계)
     @GetMapping("/mypage")
@@ -90,6 +93,14 @@ public class MyPageController {
             @Valid @RequestBody ReviewCreateRequest request) {
         ReviewResponse response = mypageReservationService.createReview(request);
         return ResponseEntity.ok(ApiResponse.success("후기 생성 성공", response));
+    }
+
+    // 내 메이트 참여 목록 조회
+    @GetMapping("/mypage/mate-participations")
+    public ResponseEntity<ApiResponse<List<MateParticipantResponse>>> getMyMateParticipations() {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        List<MateParticipantResponse> response = mateParticipantService.myParticipations(accountId);
+        return ResponseEntity.ok(ApiResponse.success("내 메이트 참여 목록 조회 성공", response));
     }
 
     // 내 메이트 모집글 조회
