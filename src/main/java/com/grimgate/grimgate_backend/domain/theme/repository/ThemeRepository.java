@@ -21,4 +21,11 @@ public interface ThemeRepository extends JpaRepository<Theme, Long> {
 
     @Query(value = "SELECT * FROM theme WHERE deleted_at IS NULL ORDER BY RAND() LIMIT :limit", nativeQuery = true)
     List<Theme> findRandom(@Param("limit") int limit);
+
+    List<Theme> findByHorrorLevel(Integer horrorLevel);
+    List<Theme> findByHorrorLevelLessThanEqual(Integer horrorLevel);
+    List<Theme> findByDifficultyGreaterThanEqual(Integer difficulty);
+    List<Theme> findByDifficultyLessThanEqual(Integer difficulty);
+    List<Theme> findByMinPeopleLessThanEqual(Integer minPeople);
+    List<Theme> findByPlayTimeBetween(Integer start, Integer end);
 }

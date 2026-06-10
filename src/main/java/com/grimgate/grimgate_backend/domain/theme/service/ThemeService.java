@@ -46,29 +46,37 @@ public class ThemeService {
                 .stream()
                 //난이도 필터
                 .filter(theme -> condition.getDifficulty() == null
+                        || condition.getDifficulty() == 0
                         || theme.getDifficulty().equals(condition.getDifficulty())
                 )
                 //지역 필터
                 .filter(theme -> condition.getRegion() == null
+                        || condition.getRegion().isEmpty()
                         || theme.getBranch().getRegion().equals(condition.getRegion())
                 )
 
                 // 최소 인원 필터
                 .filter(theme ->
                         condition.getMin_people() == null
+                                || condition.getMin_people() == 0
                                 || theme.getMinPeople().equals( condition.getMin_people())
                 )
 
                 //최소 평점
                 .filter(theme -> condition.getMinRating()== null
+                        || condition.getMinRating() == 0.0
                         || theme.getRating() >=condition.getMinRating()
                 )
                 //공포도
                 .filter(theme -> condition.getHorrorLevel() == null
-                || theme.getHorrorLevel().equals(condition.getHorrorLevel()))
+                        || condition.getHorrorLevel() == 0
+                        || theme.getHorrorLevel().equals(condition.getHorrorLevel()))
 
                 //키워드
                 .filter(theme -> condition.getKeyword() == null
+                        || condition.getKeyword().isEmpty()
+                        || theme.getTitle().contains(condition.getKeyword())
+                        || theme.getDescription().contains(condition.getKeyword())
                         || theme.getTags().contains(condition.getKeyword()))
 
                 .map(theme -> new ThemeResponse(

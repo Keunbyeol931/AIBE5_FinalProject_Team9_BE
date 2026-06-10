@@ -3,6 +3,7 @@ package com.grimgate.grimgate_backend.domain.mypage.service;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
+import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
 import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewCreateRequest;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
@@ -49,6 +50,11 @@ public class MyPageReservationService {
         if (!reservation.getTimeSlot().getSlotDate().isBefore(LocalDate.now())) {
             throw new CustomException(ErrorCode.RESERVATION_NOT_COMPLETED);
         }
+
+        // 취소된 예약 검증 추가
+        if (reservation.getStatus() == ReservationStatus.CANCELLED) {
+            throw new CustomException(ErrorCode.RESERVATION_CANCELLED);
+        }
         //중복 후기 확인
         if (reviewRepository.existsByReservationId(request.getReservationId())) {
             throw new CustomException(ErrorCode.REVIEW_ALREADY_EXISTS);
@@ -77,6 +83,12 @@ public class MyPageReservationService {
             reviewImageRepository.saveAll(images);
         }
 
+        // 저장된 이미지 조회
+        List<String> imageUrls = reviewImageRepository.findByReview_Id(review.getId())
+                .stream()
+                .map(ReviewImage::getImageUrl)
+                .toList();
+
         return ReviewResponse.builder()
                 .nickname(member.getAccount().getNickname())
                 .rating(review.getRating())
@@ -85,7 +97,7 @@ public class MyPageReservationService {
                 .tags(review.getTags())
                 .content(review.getContent())
                 .spoiler(review.getSpoiler())
-                .imageUrls(request.getImageUrls())
+                .imageUrls(imageUrls)
                 .build();
     }
 

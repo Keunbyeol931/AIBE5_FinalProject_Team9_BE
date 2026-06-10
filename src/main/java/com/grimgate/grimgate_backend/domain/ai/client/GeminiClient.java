@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +46,10 @@ public class GeminiClient {
                 "contents", contents
         );
 
+
+        System.out.println("MODEL = " + model);
+        System.out.println("API KEY 앞 5자리 = " + apiKey.substring(0, 5));
+       try{
         String response = webClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/v1beta/models/{model}:generateContent")
@@ -51,9 +58,20 @@ public class GeminiClient {
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(String.class)
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                   // 429(TooManyRequests)가 '아닐 때만' 재시도하도록 필터 변경
+                   .filter(throwable -> !(throwable instanceof WebClientResponseException.TooManyRequests))
+           )
                 .block();
 
         return extractText(response);
+       } catch (WebClientResponseException.TooManyRequests e) {
+           System.err.println("Gemini API 호출 한도 초과 (429): " + e.getMessage());
+           throw e;  // 텍스트 반환 말고 예외 던지기
+       }  catch (Exception e) {
+           System.err.println("Gemini API 호출 중 알 수 없는 에러 발생: " + e.getMessage());
+           throw e;  // 이것도 예외 던지기
+       }
     }
 
     private String extractText(String rawResponse) {

@@ -36,7 +36,7 @@ public class ReviewController {
     }
 
     //후기 단건 상세 조회
-    @GetMapping("/reviews{reviewId}")
+    @GetMapping("/reviews/{reviewId}")
     public ReviewResponse getReviewById(
             @PathVariable Long reviewId){
         return reviewService.getReviewById(reviewId);
