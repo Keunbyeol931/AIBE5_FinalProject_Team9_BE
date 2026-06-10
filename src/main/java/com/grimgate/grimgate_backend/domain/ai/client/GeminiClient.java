@@ -47,8 +47,7 @@ public class GeminiClient {
         );
 
 
-        System.out.println("MODEL = " + model);
-        System.out.println("API KEY 앞 5자리 = " + apiKey.substring(0, 5));
+
        try{
         String response = webClient.post()
                 .uri(uriBuilder -> uriBuilder
