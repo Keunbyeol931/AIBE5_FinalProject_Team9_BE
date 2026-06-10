@@ -41,7 +41,6 @@ public enum ErrorCode {
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "후기를 찾을 수 없습니다."),
     REVIEW_NOT_OWNER(HttpStatus.FORBIDDEN, "본인의 후기만 수정/삭제할 수 있습니다."),
     IMAGE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지는 최대 3장까지 등록 가능합니다."),
-    RESERVATION_CANCELLED(HttpStatus.BAD_REQUEST, "취소된 예약에는 후기를 작성할 수 없습니다."),
 
     // 지점/테마 (사장님 페이지)
     BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, "지점을 찾을 수 없습니다."),
@@ -68,12 +67,15 @@ public enum ErrorCode {
     MATE_PARTICIPANT_CANCEL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "모집이 완료되었거나 마감된 모집글은 참여를 취소할 수 없습니다."),
     MATE_PARTICIPANT_LIST_FORBIDDEN(HttpStatus.FORBIDDEN, "참여자 목록은 작성자만 조회할 수 있습니다."),
 
+
     INVALID_THEME_CAPACITY(HttpStatus.BAD_REQUEST, "최소 인원은 최대 인원보다 클 수 없습니다."),
 
     // 결제
     INVALID_RESERVATION_STATUS(HttpStatus.BAD_REQUEST, "결제 가능한 예약 상태가 아닙니다."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 요청 금액이 예약 금액과 일치하지 않습니다."),
-    PAYMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "해당 예약에 대한 결제 내역이 이미 존재합니다.");
+    PAYMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "해당 예약에 대한 결제 내역이 이미 존재합니다."),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "결제 내역을 찾을 수 없습니다."),
+    INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "결제 승인이 가능한 상태가 아닙니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

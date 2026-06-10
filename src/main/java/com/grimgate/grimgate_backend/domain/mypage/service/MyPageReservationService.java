@@ -49,7 +49,10 @@ public class MyPageReservationService {
         if (!reservation.getMember().getId().equals(member.getId())) {
             throw new CustomException(ErrorCode.REVIEW_NOT_OWNER);
         }
-
+        //지난 예약인지 확인
+        if (!reservation.getTimeSlot().getSlotDate().isBefore(LocalDate.now())) {
+            throw new CustomException(ErrorCode.RESERVATION_NOT_COMPLETED);
+        }
         //예약 상태 확인
         boolean isPast = reservation.getTimeSlot().getSlotDate().isBefore(LocalDate.now());
         boolean isCompleted = reservation.getStatus() == ReservationStatus.COMPLETED;
@@ -111,6 +114,7 @@ public class MyPageReservationService {
                 .tags(review.getTags())
                 .content(review.getContent())
                 .spoiler(review.getSpoiler())
+                .createdAt(review.getCreatedAt())
                 .imageUrls(imageUrls)
                 .build();
     }

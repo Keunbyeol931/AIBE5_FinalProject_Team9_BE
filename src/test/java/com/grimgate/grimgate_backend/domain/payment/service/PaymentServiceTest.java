@@ -11,6 +11,10 @@ import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.domain.payment.dto.PaymentReadyRequest;
 import com.grimgate.grimgate_backend.domain.payment.dto.PaymentReadyResponse;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentConfirmRequest;
+import com.grimgate.grimgate_backend.domain.payment.dto.PaymentConfirmResponse;
+import com.grimgate.grimgate_backend.domain.payment.client.TossPaymentsClient;
+import com.grimgate.grimgate_backend.domain.payment.client.TossPaymentsClient.TossConfirmResponseDto;
 import com.grimgate.grimgate_backend.domain.payment.entity.Payment;
 import com.grimgate.grimgate_backend.domain.payment.entity.PaymentStatus;
 import com.grimgate.grimgate_backend.domain.payment.repository.PaymentRepository;
@@ -21,6 +25,7 @@ import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlot;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +52,12 @@ class PaymentServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private TossPaymentsClient tossPaymentsClient;
+
+    @Mock
+    private PaymentConfirmHelper paymentConfirmHelper;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -321,5 +332,210 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.readyPayment(request))
                 .isInstanceOf(CustomException.class)
                 .hasMessage(ErrorCode.PAYMENT_ALREADY_EXISTS.getMessage());
+    }
+
+    @Test
+    @DisplayName("결제 승인 성공 - 결제대기 건이 정상 승인되면 PAY_SUCCESS 상태의 결제를 반환한다")
+    void confirmPayment_Success() {
+        // given
+        String orderId = "order-123";
+        String paymentKey = "toss-key-xyz";
+        Integer amount = 22000;
+
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .orderId(orderId)
+                .paymentKey(paymentKey)
+                .amount(amount)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(100L)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .amount(amount)
+                .status(PaymentStatus.PAY_PENDING)
+                .reservation(reservation)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+
+        TossConfirmResponseDto tossResponse = new TossConfirmResponseDto(
+                paymentKey, orderId, "카드", "2024-02-13T10:15:30+09:00"
+        );
+        when(tossPaymentsClient.confirm(paymentKey, orderId, amount)).thenReturn(tossResponse);
+
+        Payment confirmedPayment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .amount(amount)
+                .status(PaymentStatus.PAY_SUCCESS)
+                .paymentKey(paymentKey)
+                .paymentMethod("카드")
+                .paidAt(LocalDateTime.parse("2024-02-13T10:15:30"))
+                .reservation(reservation)
+                .build();
+        when(paymentRepository.findById(1L)).thenReturn(Optional.of(confirmedPayment));
+
+        // when
+        PaymentConfirmResponse response = paymentService.confirmPayment(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getPaymentId()).isEqualTo(1L);
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.PAY_SUCCESS);
+        assertThat(response.getPaymentKey()).isEqualTo(paymentKey);
+        assertThat(response.getPaymentMethod()).isEqualTo("카드");
+
+        verify(tossPaymentsClient).confirm(paymentKey, orderId, amount);
+        verify(paymentConfirmHelper).saveConfirmSuccess(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(paymentKey), org.mockito.ArgumentMatchers.eq("카드"), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("결제 승인 중복 방지 - 이미 PAY_SUCCESS 상태인 경우 Toss API 호출 없이 성공 응답을 반환한다")
+    void confirmPayment_AlreadySuccess() {
+        // given
+        String orderId = "order-123";
+        String paymentKey = "toss-key-xyz";
+        Integer amount = 22000;
+
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .orderId(orderId)
+                .paymentKey(paymentKey)
+                .amount(amount)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(100L)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .amount(amount)
+                .status(PaymentStatus.PAY_SUCCESS)
+                .paymentKey(paymentKey)
+                .paymentMethod("카드")
+                .paidAt(LocalDateTime.now())
+                .reservation(reservation)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+
+        // when
+        PaymentConfirmResponse response = paymentService.confirmPayment(request);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getPaymentId()).isEqualTo(1L);
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.PAY_SUCCESS);
+
+        Mockito.verifyNoInteractions(tossPaymentsClient);
+        Mockito.verifyNoInteractions(paymentConfirmHelper);
+    }
+
+    @Test
+    @DisplayName("결제 승인 실패 - 결제 건을 찾을 수 없는 경우 PAYMENT_NOT_FOUND 에러를 던진다")
+    void confirmPayment_NotFound() {
+        // given
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .orderId("invalid-order")
+                .paymentKey("key")
+                .amount(22000)
+                .build();
+
+        when(paymentRepository.findByOrderId("invalid-order")).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.confirmPayment(request))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.PAYMENT_NOT_FOUND.getMessage());
+    }
+
+    @Test
+    @DisplayName("결제 승인 실패 - 결제 건의 상태가 PAY_PENDING이 아니면 INVALID_PAYMENT_STATUS 에러를 던진다")
+    void confirmPayment_InvalidStatus() {
+        // given
+        String orderId = "order-123";
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .orderId(orderId)
+                .paymentKey("key")
+                .amount(22000)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .amount(22000)
+                .status(PaymentStatus.PAY_FAILED)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.confirmPayment(request))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.INVALID_PAYMENT_STATUS.getMessage());
+    }
+
+    @Test
+    @DisplayName("결제 승인 실패 - 요청 결제 금액과 결제 건의 금액이 일치하지 않으면 PAYMENT_AMOUNT_MISMATCH 에러를 던진다")
+    void confirmPayment_AmountMismatch() {
+        // given
+        String orderId = "order-123";
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .orderId(orderId)
+                .paymentKey("key")
+                .amount(33000)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .amount(22000)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.confirmPayment(request))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.PAYMENT_AMOUNT_MISMATCH.getMessage());
+    }
+
+    @Test
+    @DisplayName("결제 승인 실패 - 토스 API가 에러를 반환하면 saveConfirmFailure가 실행되며 CustomException이 던져진다")
+    void confirmPayment_TossFailure() {
+        // given
+        String orderId = "order-123";
+        String paymentKey = "toss-key-xyz";
+        Integer amount = 22000;
+
+        PaymentConfirmRequest request = PaymentConfirmRequest.builder()
+                .orderId(orderId)
+                .paymentKey(paymentKey)
+                .amount(amount)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .amount(amount)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+        when(tossPaymentsClient.confirm(paymentKey, orderId, amount))
+                .thenThrow(new RuntimeException("PG 승인 한도 초과"));
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.confirmPayment(request))
+                .isInstanceOf(CustomException.class)
+                .hasMessageContaining("결제 승인 과정에서 오류가 발생했습니다: PG 승인 한도 초과");
+
+        verify(paymentConfirmHelper).saveConfirmFailure(1L, "PG 승인 한도 초과");
     }
 }
