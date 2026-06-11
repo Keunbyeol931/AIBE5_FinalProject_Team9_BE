@@ -75,8 +75,7 @@ public class SecurityConfig {
                                 "/api/themes/{id}",
                                 "/api/themes/{id}/reviews",
                                 "/api/themes/{id}/slots",
-                                "/api/themes/{id}/age-check",
-                                "/api/themes/branches/{id}"
+                                "/api/themes/{id}/age-check"
                         ).permitAll()
 
                         // Branch - 조회는 인증 불필요

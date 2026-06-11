@@ -41,6 +41,8 @@ public enum ErrorCode {
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "후기를 찾을 수 없습니다."),
     REVIEW_NOT_OWNER(HttpStatus.FORBIDDEN, "본인의 후기만 수정/삭제할 수 있습니다."),
     IMAGE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지는 최대 3장까지 등록 가능합니다."),
+    REVIEW_REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 후기입니다."),
+    REVIEW_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 내역을 찾을 수 없습니다."),
 
     // 지점/테마 (사장님 페이지)
     BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, "지점을 찾을 수 없습니다."),
