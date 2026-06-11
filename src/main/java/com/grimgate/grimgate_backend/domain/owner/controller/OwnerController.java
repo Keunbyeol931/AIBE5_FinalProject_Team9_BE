@@ -3,9 +3,7 @@ package com.grimgate.grimgate_backend.domain.owner.controller;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 import com.grimgate.grimgate_backend.domain.owner.service.OwnerService;
-import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
-import com.grimgate.grimgate_backend.domain.theme.dto.ThemeResponse;
-import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.*;
 import com.grimgate.grimgate_backend.global.response.ApiResponse;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsResponse;
 import java.time.LocalDate;
@@ -35,19 +33,19 @@ public class OwnerController {
     }
 
     @PostMapping("/themes")
-    public ResponseEntity<Void> createTheme(
+    public ResponseEntity<ThemeCreateResponse> createTheme(
             @RequestBody @Valid ThemeCreateRequest request) {
-        ownerService.createTheme(request);
-        return ResponseEntity.ok().build();
+        ThemeCreateResponse response = ownerService.createTheme(request);
+        return ResponseEntity.ok(response);
     }
 
     //수정
     @PatchMapping("/themes/{themeId}")
-    public ResponseEntity<Void> updateTheme(
+    public ResponseEntity<ThemeUpdateResponse> updateTheme(
             @PathVariable Long themeId,
             @RequestBody @Valid ThemeUpdateRequest request) {
-        ownerService.updateTheme(themeId, request);
-        return ResponseEntity.ok().build();
+        ThemeUpdateResponse response = ownerService.updateTheme(themeId, request);
+        return ResponseEntity.ok(response);
     }
 
     //삭제

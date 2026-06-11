@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grimgate.grimgate_backend.domain.ai.client.GeminiClient;
 import com.grimgate.grimgate_backend.domain.ai.dto.AiRecommendRequest;
 import com.grimgate.grimgate_backend.domain.ai.dto.AiRecommendResponse;
+import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -39,12 +40,18 @@ public class AiRecommendServiceTest {
     @Test
     @DisplayName("Ai 성공 시 정상 음답")
     void 무서운_키워드_입력시_horrorLevel5_테마_조회() {
+        Branch branch = Branch.builder()
+                .branchName("테스트 지점")
+                .region("서울")
+                .build();
+
         Theme theme = Theme.builder()
                 .id(1L)
                 .tags("공포,스릴러")
                 .horrorLevel(5)
                 .difficulty(5)
                 .description("폐병원에 갇힌 채 새벽 6시까지 살아남아라")
+                .branch(branch)   // 추가
                 .build();
 
         when(themeRepository.findByHorrorLevel(5)).thenReturn(List.of(theme));
@@ -64,12 +71,18 @@ public class AiRecommendServiceTest {
     @Test
     void Gemini_실패시_fallback_동작() {
         // given
+        Branch branch = Branch.builder()
+                .branchName("테스트 지점")
+                .region("서울")
+                .build();
+
         Theme theme = Theme.builder()
                 .id(1L)
                 .tags("공포,스릴러")
                 .horrorLevel(5)
                 .difficulty(5)
                 .description("폐병원에 갇힌 채 새벽 6시까지 살아남아라")
+                .branch(branch)   // 추가
                 .build();
 
         when(themeRepository.findByHorrorLevel(5)).thenReturn(List.of(theme));
