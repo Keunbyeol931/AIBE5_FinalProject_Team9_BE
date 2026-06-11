@@ -75,7 +75,16 @@ public enum ErrorCode {
     PAYMENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "해당 예약에 대한 결제 내역이 이미 존재합니다."),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "결제 내역을 찾을 수 없습니다."),
     INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "결제 승인이 가능한 상태가 아닙니다."),
-    WEBHOOK_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "웹훅 서명 검증에 실패했습니다.");
+    WEBHOOK_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "웹훅 서명 검증에 실패했습니다."),
+
+    // 후기 신고 (Review Report)
+    REVIEW_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 내역을 찾을 수 없습니다."),
+    REVIEW_REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 후기입니다."),
+    REVIEW_REPORT_SELF_FORBIDDEN(HttpStatus.BAD_REQUEST, "본인이 작성한 후기는 신고할 수 없습니다."),
+    REVIEW_REPORT_REASON_REQUIRED(HttpStatus.BAD_REQUEST, "신고 사유는 필수입니다."),
+    REVIEW_REPORT_OWNER_REASON_REQUIRED(HttpStatus.BAD_REQUEST, "숨김 요청 사유는 필수입니다."),
+    REVIEW_REPORT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 신고에 대한 권한이 없습니다."),
+    REVIEW_REPORT_NOT_PENDING_OWNER(HttpStatus.BAD_REQUEST, "이미 처리된 신고입니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

@@ -96,4 +96,22 @@ public class Review {
         this.tags = request.getTags();
         this.spoiler = request.getSpoiler();
     }
+
+    // ---------- 신고/숨김 관련 상태 상수 ----------
+
+    /** 노출 상태 (명세서의 REVIEW_VISIBLE 에 대응). 기존 데이터 호환을 위해 "ACTIVE" 값을 유지한다. */
+    public static final String STATUS_ACTIVE = "ACTIVE";
+
+    /** 숨김 상태 (명세서의 REVIEW_HIDDEN). */
+    public static final String STATUS_HIDDEN = "HIDDEN";
+
+    /** 관리자 승인으로 숨김 처리. */
+    public void hide() {
+        this.status = STATUS_HIDDEN;
+    }
+
+    /** 관리자 거절 / 사장님 복구 시 명시적으로 노출 상태로 되돌린다. */
+    public void restore() {
+        this.status = STATUS_ACTIVE;
+    }
 }
