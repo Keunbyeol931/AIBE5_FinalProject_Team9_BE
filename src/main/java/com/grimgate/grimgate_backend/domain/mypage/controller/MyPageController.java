@@ -15,7 +15,6 @@ import com.grimgate.grimgate_backend.domain.mypage.service.MyPageActivityService
 import com.grimgate.grimgate_backend.domain.mypage.service.MyPageReservationService;
 import com.grimgate.grimgate_backend.domain.mypage.service.MyPageService;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewCreateRequest;
-import com.grimgate.grimgate_backend.domain.review.dto.ReviewDeleteResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
 import com.grimgate.grimgate_backend.global.response.ApiResponse;
@@ -130,8 +129,8 @@ public class MyPageController {
 
     // 내 후기 삭제
     @DeleteMapping("/reviews/{reviewId}")
-    public ResponseEntity<ReviewDeleteResponse> deleteMyReview(@PathVariable Long reviewId) {
-        ReviewDeleteResponse response = mypageActivityService.deleteMyReview(reviewId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Void> deleteMyReview(@PathVariable Long reviewId) {
+        mypageActivityService.deleteMyReview(reviewId);
+        return ResponseEntity.ok().build();
     }
 }
