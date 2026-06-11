@@ -101,7 +101,10 @@ public class AdminReviewService {
         ReviewReport report = reviewReportRepository.findById(reportId)
                 .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_REPORT_NOT_FOUND));
 
-        // 4. 신고 승인 처리 (ReviewReport 상태 변경)
+        // 4. 상태 전이 검증 (REQUESTED_ADMIN_REVIEW 상태에서만 허용)
+        validateAdminActionStatus(report);
+
+        // 5. 신고 승인 처리 (ReviewReport 상태 변경)
         report.approveByAdmin(admin, request.getAdminReason());
 
         // 5. 후기 숨김 처리
@@ -121,10 +124,20 @@ public class AdminReviewService {
         ReviewReport report = reviewReportRepository.findById(reportId)
                 .orElseThrow(() -> new CustomException(ErrorCode.REVIEW_REPORT_NOT_FOUND));
 
-        // 4. 신고 반려 처리 (ReviewReport 상태 변경)
+        // 4. 상태 전이 검증 (REQUESTED_ADMIN_REVIEW 상태에서만 허용)
+        validateAdminActionStatus(report);
+
+        // 5. 신고 반려 처리 (ReviewReport 상태 변경)
         report.rejectByAdmin(admin, request.getAdminReason());
 
         // 5. 후기 원상 복구 처리
         report.getReview().restore();
+    }
+
+    // 관리자 처리 가능 상태 검증 (REQUESTED_ADMIN_REVIEW 상태에서만 허용)
+    private void validateAdminActionStatus(ReviewReport report) {
+        if (report.getStatus() != ReviewReportStatus.REQUESTED_ADMIN_REVIEW) {
+            throw new CustomException(ErrorCode.INVALID_REVIEW_REPORT_STATUS);
+        }
     }
 }

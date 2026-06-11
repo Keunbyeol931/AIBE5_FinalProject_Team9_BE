@@ -2,6 +2,7 @@ package com.grimgate.grimgate_backend.domain.owner.controller;
 
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReviewReportResponse;
 import com.grimgate.grimgate_backend.domain.owner.dto.ReviewReportHideRequest;
 import com.grimgate.grimgate_backend.domain.owner.service.OwnerService;
 import com.grimgate.grimgate_backend.domain.review.service.ReviewReportService;
@@ -71,6 +72,14 @@ public class OwnerController {
     ) {
         Page<OwnerReservationResponse> response = ownerService.searchReservations(request, pageable);
         return ResponseEntity.ok(ApiResponse.success("예약 목록 조회가 완료되었습니다.", response));
+    }
+
+    // 사장님 자기 지점 후기 신고 목록 조회
+    @GetMapping("/review-reports")
+    public ResponseEntity<Page<OwnerReviewReportResponse>> getReviewReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "16") int limit) {
+        return ResponseEntity.ok(reviewReportService.getReportsByOwner(page, limit));
     }
 
     // 사장님 신고 복구 처리

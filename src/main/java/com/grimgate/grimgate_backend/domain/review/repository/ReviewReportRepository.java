@@ -18,4 +18,7 @@ public interface ReviewReportRepository extends JpaRepository<ReviewReport, Long
 
     // 관리자 통계 — 처리 상태별 신고 수 집계
     long countByStatus(ReviewReportStatus status);
+
+    // 사장님 자기 지점 후기 신고 목록 조회 (branch.managerId 기준 필터)
+    Page<ReviewReport> findByReview_Theme_Branch_ManagerId(Long managerId, Pageable pageable);
 }
