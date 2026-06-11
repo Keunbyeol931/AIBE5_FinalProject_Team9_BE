@@ -30,6 +30,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -77,7 +78,7 @@ public class OwnerService {
                 .build();
 
         Theme savedTheme = themeRepository.save(theme);
-        return new ThemeCreateResponse(savedTheme.getId(), savedTheme.getCreatedAt());
+        return new ThemeCreateResponse(savedTheme.getId(), LocalDateTime.now());
     }
 
     //테마 수정
@@ -110,7 +111,7 @@ public class OwnerService {
             throw new CustomException(ErrorCode.INVALID_THEME_CAPACITY);
         }
         theme.update(request);
-        return new ThemeUpdateResponse(theme.getId(), theme.getUpdatedAt());
+        return new ThemeUpdateResponse(theme.getId(), LocalDateTime.now());
     }
 
     //테마 삭제

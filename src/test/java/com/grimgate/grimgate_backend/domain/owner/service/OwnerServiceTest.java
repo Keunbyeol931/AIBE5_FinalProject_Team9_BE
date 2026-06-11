@@ -6,6 +6,7 @@ import com.grimgate.grimgate_backend.domain.manager.repository.ManagerRepository
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageRepository;
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateResponse;
 import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
 import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -97,7 +99,19 @@ public class OwnerServiceTest {
             when(branchRepository.findByManagerId(any()))
                     .thenReturn(Optional.of(branch));
 
-            ownerService.createTheme(request);
+            when(themeRepository.save(any(Theme.class)))
+                    .thenAnswer(invocation -> {
+                        Theme t = invocation.getArgument(0);
+                        return Theme.builder()
+                                .id(1L)
+                                .branch(t.getBranch())
+                                .build();
+                    });
+
+            ThemeCreateResponse response = ownerService.createTheme(request);
+            assertThat(response).isNotNull();
+            assertThat(response.id()).isNotNull();
+            assertThat(response.createdAt()).isNotNull();
 
             verify(themeRepository, times(1))
                     .save(any(Theme.class));
