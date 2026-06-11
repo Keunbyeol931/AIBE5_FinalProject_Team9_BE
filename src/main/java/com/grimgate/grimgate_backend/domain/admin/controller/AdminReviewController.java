@@ -28,6 +28,12 @@ public class AdminReviewController {
         return ResponseEntity.ok(adminReviewService.getReviews(request));
     }
 
+    // 관리자 후기 통계 조회
+    @GetMapping("/reviews/stats")
+    public ResponseEntity<AdminReviewStatsResponse> getStats() {
+        return ResponseEntity.ok(adminReviewService.getStats());
+    }
+
     // 관리자 후기 상세 조회
     @GetMapping("/reviews/{reviewId}")
     public ResponseEntity<AdminReviewDetailResponse> getReviewDetail(@PathVariable Long reviewId) {

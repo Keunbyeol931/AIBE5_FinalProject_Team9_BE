@@ -3,6 +3,7 @@ package com.grimgate.grimgate_backend.domain.admin.dto.request;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 
@@ -19,9 +20,11 @@ public class AdminReviewSearchRequest {
     private Long themeId;
 
     // 작성일 시작일 (해당 날짜 00:00:00 이상)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dateFrom;
 
     // 작성일 종료일 (해당 날짜 23:59:59 이하)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dateTo;
 
     // 후기 본문 또는 작성자 닉네임 검색어
