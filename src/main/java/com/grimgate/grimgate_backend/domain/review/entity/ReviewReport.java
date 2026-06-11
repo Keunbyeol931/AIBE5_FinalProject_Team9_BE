@@ -1,5 +1,6 @@
 package com.grimgate.grimgate_backend.domain.review.entity;
 
+import com.grimgate.grimgate_backend.domain.manager.entity.Manager;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -53,10 +54,10 @@ public class ReviewReport {
     @Column(nullable = false, length = 30)
     private ReviewReportStatus status;
 
-    /** 사장님 처리자 (RR-002/003 시) */
+    /** 사장님 처리자 (RR-002/003 시) — Manager 엔티티 PK 참조. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
-    private Member owner;
+    private Manager owner;
 
     /** 사장님 숨김요청 사유 */
     @Column(name = "owner_reason", columnDefinition = "TEXT")
@@ -98,7 +99,7 @@ public class ReviewReport {
     // ---------- 도메인 메서드 ----------
 
     /** 사장님 "문제없음" 복구 처리 */
-    public void restoreByOwner(Member owner) {
+    public void restoreByOwner(Manager owner) {
         this.owner = owner;
         this.status = ReviewReportStatus.OWNER_RESTORED;
         this.ownerHandledAt = LocalDateTime.now();
@@ -106,7 +107,7 @@ public class ReviewReport {
     }
 
     /** 사장님 관리자 숨김 요청 */
-    public void requestHideByOwner(Member owner, String ownerReason) {
+    public void requestHideByOwner(Manager owner, String ownerReason) {
         this.owner = owner;
         this.ownerReason = ownerReason;
         this.status = ReviewReportStatus.REQUESTED_ADMIN_REVIEW;

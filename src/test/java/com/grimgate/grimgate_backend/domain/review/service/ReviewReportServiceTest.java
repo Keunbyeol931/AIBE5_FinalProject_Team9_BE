@@ -217,13 +217,11 @@ class ReviewReportServiceTest {
                 .thenReturn(Optional.of(ownerManager));
         when(reviewReportRepository.findByIdForOwner(REPORT_ID, OWNER_MANAGER_ID))
                 .thenReturn(Optional.of(report));
-        when(memberRepository.findByAccount_Id(OWNER_ACCOUNT_ID))
-                .thenReturn(Optional.of(ownerMember));
 
         ReviewReportResponse res = reviewReportService.restoreByOwner(REPORT_ID);
 
         assertThat(report.getStatus()).isEqualTo(ReviewReportStatus.OWNER_RESTORED);
-        assertThat(report.getOwner()).isEqualTo(ownerMember);
+        assertThat(report.getOwner()).isEqualTo(ownerManager);
         assertThat(report.getOwnerHandledAt()).isNotNull();
         assertThat(report.getResolvedAt()).isNotNull();
         // 후기 자체는 활성 상태 유지
@@ -296,8 +294,6 @@ class ReviewReportServiceTest {
                 .thenReturn(Optional.of(ownerManager));
         when(reviewReportRepository.findByIdForOwner(REPORT_ID, OWNER_MANAGER_ID))
                 .thenReturn(Optional.of(report));
-        when(memberRepository.findByAccount_Id(OWNER_ACCOUNT_ID))
-                .thenReturn(Optional.of(ownerMember));
 
         ReviewReportHideRequest req = new ReviewReportHideRequest();
         setField(req, "ownerReason", "허위 비방성 내용");

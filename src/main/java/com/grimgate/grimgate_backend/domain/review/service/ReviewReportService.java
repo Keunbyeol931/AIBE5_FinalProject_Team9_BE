@@ -85,7 +85,7 @@ public class ReviewReportService {
             throw new CustomException(ErrorCode.REVIEW_REPORT_NOT_PENDING_OWNER);
         }
 
-        Member owner = currentMember();
+        Manager owner = getCurrentManager();
         report.restoreByOwner(owner);
         // 사장님 "문제없음" 판정 → 후기는 노출 유지 (이미 ACTIVE 이므로 명시적 변경 불필요)
         return ReviewReportResponse.ownerHandled(report);
@@ -101,7 +101,7 @@ public class ReviewReportService {
             throw new CustomException(ErrorCode.REVIEW_REPORT_NOT_PENDING_OWNER);
         }
 
-        Member owner = currentMember();
+        Manager owner = getCurrentManager();
         report.requestHideByOwner(owner, request.getOwnerReason());
         return ReviewReportResponse.ownerHandled(report);
     }
