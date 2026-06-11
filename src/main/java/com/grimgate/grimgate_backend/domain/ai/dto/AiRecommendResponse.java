@@ -16,7 +16,9 @@ public record AiRecommendResponse(
             Integer horrorLevel,
             Integer difficulty,
             Double rating,
-            String description
+            String description,
+            String branchName,
+            String region
     ) {
         public static ThemeCard from(Theme theme) {
             return new ThemeCard(
@@ -26,7 +28,9 @@ public record AiRecommendResponse(
                     theme.getHorrorLevel(),
                     theme.getDifficulty(),
                     theme.getRating(),
-                    theme.getDescription()
+                    theme.getDescription(),
+                    theme.getBranch().getBranchName(),
+                    theme.getBranch().getRegion()
 
             );
         }

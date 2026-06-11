@@ -4,6 +4,7 @@ import com.grimgate.grimgate_backend.domain.mate.repository.MatePostRepository;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMatePostResponse;
+import com.grimgate.grimgate_backend.domain.review.dto.ReviewDeleteResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
 import com.grimgate.grimgate_backend.domain.review.entity.Review;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -145,7 +147,7 @@ public class MyPageActivityService {
 
     //내 후기 삭제
     @Transactional
-    public void deleteMyReview(Long reviewId) {
+    public ReviewDeleteResponse deleteMyReview(Long reviewId) {
         Long accountId = SecurityUtil.getCurrentAccountId();
 
         Member member = memberRepository.findByAccount_Id(accountId)
@@ -176,6 +178,8 @@ public class MyPageActivityService {
         double newRating = Math.round(average * 10.0) / 10.0;
         theme.updateRating(newRating, remaining.size());
         themeRepository.save(theme);
+
+        return new ReviewDeleteResponse(review.getId(), LocalDateTime.now());
 
     }
 
