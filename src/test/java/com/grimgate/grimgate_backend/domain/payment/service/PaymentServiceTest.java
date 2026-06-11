@@ -538,4 +538,165 @@ class PaymentServiceTest {
 
         verify(paymentConfirmHelper).saveConfirmFailure(1L, "PG 승인 한도 초과");
     }
+
+    // 올바른 테스트 서명을 생성하는 헬퍼 메서드입니다.
+    private String generateTestSignature(String payload, String transmissionTime, String secretKey) throws Exception {
+        String message = payload + ":" + transmissionTime;
+        javax.crypto.Mac sha256HMAC = javax.crypto.Mac.getInstance("HmacSHA256");
+        javax.crypto.spec.SecretKeySpec secretKeySpec = new javax.crypto.spec.SecretKeySpec(
+                secretKey.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                "HmacSHA256"
+        );
+        sha256HMAC.init(secretKeySpec);
+        byte[] hashBytes = sha256HMAC.doFinal(message.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return "v1:" + java.util.Base64.getEncoder().encodeToString(hashBytes);
+    }
+
+    @Test
+    @DisplayName("웹훅 성공 - DONE 상태의 웹훅 수신 시 saveWebhookSuccess를 정상적으로 호출한다")
+    void processWebhook_Success_Done() throws Exception {
+        // given
+        String secretKey = "test_webhook_secret_key";
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "webhookSecretKey", secretKey);
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "objectMapper", new com.fasterxml.jackson.databind.ObjectMapper());
+
+        String orderId = "order-123";
+        String payload = "{"
+                + "\"eventType\":\"PAYMENT_STATUS_CHANGED\","
+                + "\"createdAt\":\"2026-06-10T12:00:00.000000\","
+                + "\"data\":{"
+                + "\"orderId\":\"" + orderId + "\","
+                + "\"paymentKey\":\"toss-key-xyz\","
+                + "\"status\":\"DONE\","
+                + "\"method\":\"카드\","
+                + "\"approvedAt\":\"2026-06-10T12:00:05+09:00\""
+                + "}"
+                + "}";
+        String transmissionTime = "2026-06-10T12:00:10+09:00";
+        String signature = generateTestSignature(payload, transmissionTime, secretKey);
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+
+        // when
+        paymentService.processWebhook(payload, signature, transmissionTime);
+
+        // then
+        verify(paymentConfirmHelper).saveWebhookSuccess(
+                org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("toss-key-xyz"),
+                org.mockito.ArgumentMatchers.eq("카드"),
+                any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    @DisplayName("웹훅 성공 - ABORTED 상태의 웹훅 수신 시 saveWebhookFailure를 정상적으로 호출한다")
+    void processWebhook_Success_Aborted() throws Exception {
+        // given
+        String secretKey = "test_webhook_secret_key";
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "webhookSecretKey", secretKey);
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "objectMapper", new com.fasterxml.jackson.databind.ObjectMapper());
+
+        String orderId = "order-123";
+        String payload = "{"
+                + "\"eventType\":\"PAYMENT_STATUS_CHANGED\","
+                + "\"createdAt\":\"2026-06-10T12:00:00.000000\","
+                + "\"data\":{"
+                + "\"orderId\":\"" + orderId + "\","
+                + "\"status\":\"ABORTED\""
+                + "}"
+                + "}";
+        String transmissionTime = "2026-06-10T12:00:10+09:00";
+        String signature = generateTestSignature(payload, transmissionTime, secretKey);
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+
+        // when
+        paymentService.processWebhook(payload, signature, transmissionTime);
+
+        // then
+        verify(paymentConfirmHelper).saveWebhookFailure(
+                org.mockito.ArgumentMatchers.eq(1L),
+                any(String.class)
+        );
+    }
+
+    @Test
+    @DisplayName("웹훅 성공 - EXPIRED 상태의 웹훅 수신 시 saveWebhookTimeout을 정상적으로 호출한다")
+    void processWebhook_Success_Expired() throws Exception {
+        // given
+        String secretKey = "test_webhook_secret_key";
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "webhookSecretKey", secretKey);
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "objectMapper", new com.fasterxml.jackson.databind.ObjectMapper());
+
+        String orderId = "order-123";
+        String payload = "{"
+                + "\"eventType\":\"PAYMENT_STATUS_CHANGED\","
+                + "\"createdAt\":\"2026-06-10T12:00:00.000000\","
+                + "\"data\":{"
+                + "\"orderId\":\"" + orderId + "\","
+                + "\"status\":\"EXPIRED\""
+                + "}"
+                + "}";
+        String transmissionTime = "2026-06-10T12:00:10+09:00";
+        String signature = generateTestSignature(payload, transmissionTime, secretKey);
+
+        Payment payment = Payment.builder()
+                .id(1L)
+                .orderId(orderId)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.of(payment));
+
+        // when
+        paymentService.processWebhook(payload, signature, transmissionTime);
+
+        // then
+        verify(paymentConfirmHelper).saveWebhookTimeout(
+                org.mockito.ArgumentMatchers.eq(1L)
+        );
+    }
+
+    @Test
+    @DisplayName("웹훅 실패 - 서명이 올바르지 않으면 WEBHOOK_VERIFICATION_FAILED 에러를 던진다")
+    void processWebhook_Fail_SignatureMismatch() throws Exception {
+        // given
+        String secretKey = "test_webhook_secret_key";
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "webhookSecretKey", secretKey);
+        org.springframework.test.util.ReflectionTestUtils.setField(paymentService, "objectMapper", new com.fasterxml.jackson.databind.ObjectMapper());
+
+        String payload = "{\"eventType\":\"PAYMENT_STATUS_CHANGED\"}";
+        String transmissionTime = "2026-06-10T12:00:10+09:00";
+        String invalidSignature = "v1:invalid-sig-data";
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.processWebhook(payload, invalidSignature, transmissionTime))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.WEBHOOK_VERIFICATION_FAILED.getMessage());
+    }
+
+    @Test
+    @DisplayName("웹훅 실패 - 서명 헤더나 전송시간 헤더가 없으면 WEBHOOK_VERIFICATION_FAILED 에러를 던진다")
+    void processWebhook_Fail_MissingHeaders() {
+        // given
+        String payload = "{\"eventType\":\"PAYMENT_STATUS_CHANGED\"}";
+
+        // when & then
+        assertThatThrownBy(() -> paymentService.processWebhook(payload, null, null))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.WEBHOOK_VERIFICATION_FAILED.getMessage());
+    }
 }
