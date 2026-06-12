@@ -57,6 +57,7 @@ public class SecurityConfig {
                                 "/api/auth/register/manager",
                                 "/api/auth/login/member",
                                 "/api/auth/login/manager",
+                                "/api/auth/login/admin",
                                 "/api/auth/refresh",
                                 "/api/auth/logout",
                                 "/api/auth/oauth/google",

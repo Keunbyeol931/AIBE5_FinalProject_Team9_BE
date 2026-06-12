@@ -53,6 +53,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다.", response));
     }
 
+    // 관리자 로그인 (ADMIN 고정)
+    @PostMapping("/login/admin")
+    public ResponseEntity<ApiResponse<TokenResponse>> loginAdmin(
+            @RequestBody @Valid LoginRequest request) {
+        TokenResponse response = authService.login(request, Role.ADMIN);
+        return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다.", response));
+    }
+
     // 토큰 재발급
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<TokenResponse>> refresh(
