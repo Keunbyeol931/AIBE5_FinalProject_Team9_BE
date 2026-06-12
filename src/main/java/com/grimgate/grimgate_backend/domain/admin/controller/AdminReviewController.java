@@ -10,6 +10,8 @@ import com.grimgate.grimgate_backend.domain.admin.service.AdminReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +34,23 @@ public class AdminReviewController {
     @GetMapping("/reviews/stats")
     public ResponseEntity<AdminReviewStatsResponse> getStats() {
         return ResponseEntity.ok(adminReviewService.getStats());
+    }
+
+    // 관리자 후기 목록 엑셀 다운로드 (검색/필터 조건 기반)
+    @GetMapping("/reviews/export")
+    public ResponseEntity<byte[]> exportReviews(
+            @ModelAttribute AdminReviewSearchRequest request) {
+        byte[] excelBytes = adminReviewService.exportReviews(request);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "admin-reviews.xlsx");
+        headers.setContentLength(excelBytes.length);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(excelBytes);
     }
 
     // 관리자 후기 상세 조회
