@@ -88,6 +88,16 @@ public class Review {
 
     }
 
+    /** 관리자 승인 시 후기 숨김 처리 */
+    public void hide() {
+        this.status = "HIDDEN";
+    }
+
+    /** 관리자 반려 시 후기 복구 처리 */
+    public void restore() {
+        this.status = "ACTIVE";
+    }
+
     public void update(ReviewUpdateRequest request) {
         this.rating = request.getRating();
         this.horrorRating = request.getHorrorRating();

@@ -2,8 +2,13 @@ package com.grimgate.grimgate_backend.domain.owner.controller;
 
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReviewReportResponse;
+import com.grimgate.grimgate_backend.domain.owner.dto.ReviewReportHideRequest;
 import com.grimgate.grimgate_backend.domain.owner.service.OwnerService;
-import com.grimgate.grimgate_backend.domain.theme.dto.*;
+import com.grimgate.grimgate_backend.domain.review.service.ReviewReportService;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeResponse;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
 import com.grimgate.grimgate_backend.global.response.ApiResponse;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsResponse;
 import java.time.LocalDate;
@@ -26,6 +31,7 @@ import java.util.List;
 public class OwnerController {
 
     private final OwnerService ownerService;
+    private final ReviewReportService reviewReportService;
 
     @GetMapping("/themes")
     public ResponseEntity<List<ThemeResponse>> getOwnerThemes(){
@@ -33,19 +39,19 @@ public class OwnerController {
     }
 
     @PostMapping("/themes")
-    public ResponseEntity<ThemeCreateResponse> createTheme(
+    public ResponseEntity<Void> createTheme(
             @RequestBody @Valid ThemeCreateRequest request) {
-        ThemeCreateResponse response = ownerService.createTheme(request);
-        return ResponseEntity.ok(response);
+        ownerService.createTheme(request);
+        return ResponseEntity.ok().build();
     }
 
     //수정
     @PatchMapping("/themes/{themeId}")
-    public ResponseEntity<ThemeUpdateResponse> updateTheme(
+    public ResponseEntity<Void> updateTheme(
             @PathVariable Long themeId,
             @RequestBody @Valid ThemeUpdateRequest request) {
-        ThemeUpdateResponse response = ownerService.updateTheme(themeId, request);
-        return ResponseEntity.ok(response);
+        ownerService.updateTheme(themeId, request);
+        return ResponseEntity.ok().build();
     }
 
     //삭제
@@ -66,6 +72,30 @@ public class OwnerController {
     ) {
         Page<OwnerReservationResponse> response = ownerService.searchReservations(request, pageable);
         return ResponseEntity.ok(ApiResponse.success("예약 목록 조회가 완료되었습니다.", response));
+    }
+
+    // 사장님 자기 지점 후기 신고 목록 조회
+    @GetMapping("/review-reports")
+    public ResponseEntity<Page<OwnerReviewReportResponse>> getReviewReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "16") int limit) {
+        return ResponseEntity.ok(reviewReportService.getReportsByOwner(page, limit));
+    }
+
+    // 사장님 신고 복구 처리
+    @PatchMapping("/review-reports/{reportId}/restore")
+    public ResponseEntity<Void> restoreByOwner(@PathVariable Long reportId) {
+        reviewReportService.restoreByOwner(reportId);
+        return ResponseEntity.ok().build();
+    }
+
+    // 사장님 관리자 숨김 요청
+    @PatchMapping("/review-reports/{reportId}/request-hide")
+    public ResponseEntity<Void> requestHideByOwner(
+            @PathVariable Long reportId,
+            @RequestBody @Valid ReviewReportHideRequest request) {
+        reviewReportService.requestHideByOwner(reportId, request);
+        return ResponseEntity.ok().build();
     }
 
     // 예약 통계 조회
