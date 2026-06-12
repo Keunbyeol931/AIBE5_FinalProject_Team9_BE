@@ -107,7 +107,7 @@ public class AdminReviewService {
         // 5. 신고 승인 처리 (ReviewReport 상태 변경)
         report.approveByAdmin(admin, request.getAdminReason());
 
-        // 5. 후기 숨김 처리
+        // 6. 후기 숨김 처리
         report.getReview().hide();
     }
 
@@ -130,7 +130,7 @@ public class AdminReviewService {
         // 5. 신고 반려 처리 (ReviewReport 상태 변경)
         report.rejectByAdmin(admin, request.getAdminReason());
 
-        // 5. 후기 원상 복구 처리
+        // 6. 후기 원상 복구 처리
         report.getReview().restore();
     }
 
