@@ -141,6 +141,12 @@ public class Payment extends BaseTimeEntity {
         this.cancelReason = cancelReason;
     }
 
+    // 결제 성공 후 예약 취소 시 실제 환불 전까지 구분하기 위해 상태를 PAY_REFUND_PENDING으로 변경하고 취소 사유를 기록합니다.
+    public void refundPending(String cancelReason) {
+        this.status = PaymentStatus.PAY_REFUND_PENDING;
+        this.cancelReason = cancelReason;
+    }
+
     // 결제 시간 초과(timeout) 처리를 수행하며 상태를 PAYMENT_TIMEOUT으로 변경합니다.
     public void timeout() {
         this.status = PaymentStatus.PAYMENT_TIMEOUT;

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCancelResponse;
 import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCreateRequest;
 import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCreateResponse;
 import com.grimgate.grimgate_backend.domain.reservation.service.ReservationService;
@@ -131,5 +132,27 @@ class ReservationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("POST /api/reservations/{reservationId}/cancel - 예약 취소 성공 시 200 OK와 ApiResponse 형식의 결과 반환")
+    void cancelReservation_Success() throws Exception {
+        // given
+        Long reservationId = 50L;
+        ReservationCancelResponse response = ReservationCancelResponse.builder()
+                .reservationId(reservationId)
+                .status("CANCELLED")
+                .build();
+
+        when(reservationService.cancelReservation(reservationId)).thenReturn(response);
+
+        // when & then
+        mockMvc.perform(post("/api/reservations/{reservationId}/cancel", reservationId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("예약이 취소되었습니다."))
+                .andExpect(jsonPath("$.data.reservationId").value(50))
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
     }
 }
