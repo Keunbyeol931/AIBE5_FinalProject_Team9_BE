@@ -114,6 +114,13 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 완료되었습니다.", null));
     }
 
+    // 내 정보 조회
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponse>> getMe() {
+        MeResponse response = authService.getCurrentUser();
+        return ResponseEntity.ok(ApiResponse.success("내 정보를 조회했습니다.", response));
+    }
+
     // 비밀번호 변경
     @PatchMapping("/password")
     public ResponseEntity<ApiResponse<Void>> changePassword(

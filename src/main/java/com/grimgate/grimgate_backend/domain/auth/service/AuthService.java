@@ -15,6 +15,7 @@ import com.grimgate.grimgate_backend.domain.member.repository.ProfileCharacterRe
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.JwtProvider;
+import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -297,6 +298,15 @@ public class AuthService {
 
         // 새 비밀번호 암호화 후 업데이트
         account.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+    }
+
+    // 내 정보 조회
+    @Transactional(readOnly = true)
+    public MeResponse getCurrentUser() {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Account account = accountRepository.findByIdAndDeletedAtIsNull(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
+        return MeResponse.from(account);
     }
 
     // 이메일 중복 확인
