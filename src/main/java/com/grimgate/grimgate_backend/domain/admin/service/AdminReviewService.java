@@ -19,8 +19,13 @@ import com.grimgate.grimgate_backend.domain.review.repository.ReviewSpecificatio
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -76,6 +81,52 @@ public class AdminReviewService {
 
         // 3. 응답 DTO 반환
         return AdminReviewDetailResponse.from(review, images);
+    }
+
+    // 관리자 후기 목록 엑셀 다운로드 (검색/필터 조건 기반, 전체 조회)
+    @Transactional(readOnly = true)
+    public byte[] exportReviews(AdminReviewSearchRequest request) {
+        Specification<Review> spec = Specification
+                .where(ReviewSpecification.statusEquals(request.getStatus()))
+                .and(ReviewSpecification.themeIdEquals(request.getThemeId()))
+                .and(ReviewSpecification.createdAtBetween(request.getDateFrom(), request.getDateTo()))
+                .and(ReviewSpecification.keywordContains(request.getKeyword()));
+
+        List<Review> reviews = reviewRepository.findAll(spec);
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("후기 목록");
+
+            // 헤더 행 생성
+            Row header = sheet.createRow(0);
+            String[] columns = {"후기 ID", "작성자 닉네임", "테마명", "평점", "내용", "상태", "스포일러 여부", "작성일"};
+            for (int i = 0; i < columns.length; i++) {
+                header.createCell(i).setCellValue(columns[i]);
+            }
+
+            // 데이터 행 생성
+            int rowIdx = 1;
+            for (Review review : reviews) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(review.getId());
+                row.createCell(1).setCellValue(review.getMember().getAccount().getNickname());
+                row.createCell(2).setCellValue(review.getTheme().getTitle());
+                row.createCell(3).setCellValue(review.getRating());
+                row.createCell(4).setCellValue(review.getContent());
+                row.createCell(5).setCellValue(review.getStatus());
+                row.createCell(6).setCellValue(Boolean.TRUE.equals(review.getSpoiler()) ? "Y" : "N");
+                row.createCell(7).setCellValue(
+                        review.getCreatedAt() != null ? review.getCreatedAt().toString() : "");
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.EXCEL_EXPORT_FAILED);
+        }
     }
 
     // 관리자 검토 요청된 신고 목록 조회 (REQUESTED_ADMIN_REVIEW 상태)
