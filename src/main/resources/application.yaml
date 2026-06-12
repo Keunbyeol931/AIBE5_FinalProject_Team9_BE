@@ -6,6 +6,10 @@ spring:
     active: local
     include: secret
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
 toss:
   secret-key: ${TOSS_SECRET_KEY:dummy}
   webhook-secret-key: ${TOSS_WEBHOOK_SECRET:dummy_webhook_secret_key}
