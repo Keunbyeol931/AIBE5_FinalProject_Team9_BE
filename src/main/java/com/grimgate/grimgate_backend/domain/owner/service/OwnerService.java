@@ -8,7 +8,9 @@ import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
 import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
-import com.grimgate.grimgate_backend.domain.theme.dto.*;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeResponse;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
 import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.BranchRepository;
@@ -30,7 +32,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,7 @@ public class OwnerService {
     }
 
     //테마 등록
-    public ThemeCreateResponse createTheme(ThemeCreateRequest request) {
+    public void createTheme( ThemeCreateRequest request) {
         Long accountId = SecurityUtil.getCurrentAccountId();
         Manager manager = managerRepository.findByAccount_Id(accountId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
@@ -77,13 +78,12 @@ public class OwnerService {
                 .thumbnailUrl(request.getThumbnailUrl())
                 .build();
 
-        Theme savedTheme = themeRepository.save(theme);
-        return new ThemeCreateResponse(savedTheme.getId(), LocalDateTime.now());
+        themeRepository.save(theme);
     }
 
     //테마 수정
     @Transactional
-    public ThemeUpdateResponse updateTheme(Long themeId, ThemeUpdateRequest request) {
+    public void updateTheme(Long themeId, ThemeUpdateRequest request) {
 
         Long accountId = SecurityUtil.getCurrentAccountId();
         Manager manager = managerRepository.findByAccount_Id(accountId)
@@ -111,7 +111,6 @@ public class OwnerService {
             throw new CustomException(ErrorCode.INVALID_THEME_CAPACITY);
         }
         theme.update(request);
-        return new ThemeUpdateResponse(theme.getId(), LocalDateTime.now());
     }
 
     //테마 삭제
