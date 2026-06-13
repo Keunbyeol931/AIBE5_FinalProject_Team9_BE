@@ -67,4 +67,9 @@ public class Reservation extends BaseTimeEntity {
     public void confirm() {
         this.status = ReservationStatus.CONFIRMED;
     }
+
+    // 예약을 취소(CANCELLED) 상태로 변경합니다.
+    public void cancel() {
+        this.status = ReservationStatus.CANCELLED;
+    }
 }

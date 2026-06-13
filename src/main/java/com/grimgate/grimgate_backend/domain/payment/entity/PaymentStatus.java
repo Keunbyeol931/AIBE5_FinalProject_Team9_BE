@@ -31,6 +31,9 @@ public enum PaymentStatus {
      */
     PAY_REFUNDED,
 
+    // 결제 성공 후 예약 취소된 건을 실제 환불 전까지 구분하기 위한 대기 상태
+    PAY_REFUND_PENDING,
+
     /**
      * 임시 선점 시간 만료 등으로 결제가 진행되지 않고 초과된 상태
      */

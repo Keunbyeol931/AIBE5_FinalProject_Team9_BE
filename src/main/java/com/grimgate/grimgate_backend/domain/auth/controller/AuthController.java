@@ -53,6 +53,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다.", response));
     }
 
+    // 관리자 로그인 (ADMIN 고정)
+    @PostMapping("/login/admin")
+    public ResponseEntity<ApiResponse<TokenResponse>> loginAdmin(
+            @RequestBody @Valid LoginRequest request) {
+        TokenResponse response = authService.login(request, Role.ADMIN);
+        return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다.", response));
+    }
+
     // 토큰 재발급
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<TokenResponse>> refresh(
@@ -104,6 +112,13 @@ public class AuthController {
 
         authService.withdraw(accountId, accessToken);
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 완료되었습니다.", null));
+    }
+
+    // 내 정보 조회
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponse>> getMe() {
+        MeResponse response = authService.getCurrentUser();
+        return ResponseEntity.ok(ApiResponse.success("내 정보를 조회했습니다.", response));
     }
 
     // 비밀번호 변경

@@ -12,6 +12,10 @@ import static org.mockito.Mockito.when;
 
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
+import com.grimgate.grimgate_backend.domain.payment.entity.Payment;
+import com.grimgate.grimgate_backend.domain.payment.entity.PaymentStatus;
+import com.grimgate.grimgate_backend.domain.payment.repository.PaymentRepository;
+import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCancelResponse;
 import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCreateRequest;
 import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCreateResponse;
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
@@ -52,6 +56,9 @@ class ReservationServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock
+    private PaymentRepository paymentRepository;
 
     @Mock
     private StringRedisTemplate stringRedisTemplate;
@@ -643,5 +650,308 @@ class ReservationServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getReservationId()).isEqualTo(50L);
         assertThat(response.getStatus()).isEqualTo("PENDING_PAYMENT");
+    }
+
+    @Test
+    @DisplayName("예약 취소 성공 - PENDING_PAYMENT 상태이며 결제 정보가 존재할 때 결제 실패로 변경 및 슬롯 복구")
+    void cancelReservation_Success_PendingPayment_WithPayment() {
+        // given
+        Long memberId = 1L;
+        Long reservationId = 50L;
+        Long timeSlotId = 10L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        TimeSlot timeSlot = TimeSlot.builder()
+                .id(timeSlotId)
+                .status(TimeSlotStatus.SLOT_HELD)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(member)
+                .timeSlot(timeSlot)
+                .status(ReservationStatus.PENDING_PAYMENT)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(100L)
+                .reservation(reservation)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(paymentRepository.findByReservationId(reservationId)).thenReturn(Optional.of(payment));
+        when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_AVAILABLE), eq(TimeSlotStatus.SLOT_HELD), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
+
+        // when
+        ReservationCancelResponse response = reservationService.cancelReservation(reservationId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getReservationId()).isEqualTo(reservationId);
+        assertThat(response.getStatus()).isEqualTo("CANCELLED");
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAY_FAILED);
+        assertThat(payment.getCancelReason()).isEqualTo("사용자 예약 취소로 결제 진행 중단");
+
+        verify(reservationRepository).save(reservation);
+    }
+
+    @Test
+    @DisplayName("예약 취소 성공 - PENDING_PAYMENT 상태이며 결제 정보가 존재하지 않을 때 예약 취소 및 슬롯 복구만 진행")
+    void cancelReservation_Success_PendingPayment_NoPayment() {
+        // given
+        Long memberId = 1L;
+        Long reservationId = 50L;
+        Long timeSlotId = 10L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        TimeSlot timeSlot = TimeSlot.builder()
+                .id(timeSlotId)
+                .status(TimeSlotStatus.SLOT_HELD)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(member)
+                .timeSlot(timeSlot)
+                .status(ReservationStatus.PENDING_PAYMENT)
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(paymentRepository.findByReservationId(reservationId)).thenReturn(Optional.empty());
+        when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_AVAILABLE), eq(TimeSlotStatus.SLOT_HELD), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
+
+        // when
+        ReservationCancelResponse response = reservationService.cancelReservation(reservationId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getReservationId()).isEqualTo(reservationId);
+        assertThat(response.getStatus()).isEqualTo("CANCELLED");
+
+        verify(reservationRepository).save(reservation);
+    }
+
+    @Test
+    @DisplayName("예약 취소 성공 - CONFIRMED 상태이며 결제 정보가 PAY_SUCCESS일 때 결제 환불대기로 변경 및 슬롯 복구")
+    void cancelReservation_Success_Confirmed() {
+        // given
+        Long memberId = 1L;
+        Long reservationId = 50L;
+        Long timeSlotId = 10L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        TimeSlot timeSlot = TimeSlot.builder()
+                .id(timeSlotId)
+                .status(TimeSlotStatus.SLOT_FULL)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(member)
+                .timeSlot(timeSlot)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(100L)
+                .reservation(reservation)
+                .status(PaymentStatus.PAY_SUCCESS)
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(paymentRepository.findByReservationId(reservationId)).thenReturn(Optional.of(payment));
+        when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_AVAILABLE), eq(TimeSlotStatus.SLOT_FULL), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(reservation);
+
+        // when
+        ReservationCancelResponse response = reservationService.cancelReservation(reservationId);
+
+        // then
+        assertThat(response).isNotNull();
+        assertThat(response.getReservationId()).isEqualTo(reservationId);
+        assertThat(response.getStatus()).isEqualTo("CANCELLED");
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PAY_REFUND_PENDING);
+        assertThat(payment.getCancelReason()).isEqualTo("사용자 예약 취소로 인한 환불 대기");
+
+        verify(reservationRepository).save(reservation);
+    }
+
+    @Test
+    @DisplayName("예약 취소 실패 - CONFIRMED 상태이나 결제 정보가 존재하지 않을 때 400 Bad Request 발생")
+    void cancelReservation_Confirmed_NoPayment_ThrowsException() {
+        // given
+        Long memberId = 1L;
+        Long reservationId = 50L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(member)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(paymentRepository.findByReservationId(reservationId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.cancelReservation(reservationId))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(statusEx.getReason()).isEqualTo("결제 내역을 찾을 수 없습니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 취소 실패 - CONFIRMED 상태이나 결제 정보 상태가 PAY_SUCCESS가 아닐 때 400 Bad Request 발생")
+    void cancelReservation_Confirmed_PaymentNotSuccess_ThrowsException() {
+        // given
+        Long memberId = 1L;
+        Long reservationId = 50L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(member)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(100L)
+                .reservation(reservation)
+                .status(PaymentStatus.PAY_PENDING)
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(paymentRepository.findByReservationId(reservationId)).thenReturn(Optional.of(payment));
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.cancelReservation(reservationId))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(statusEx.getReason()).isEqualTo("결제 완료 상태의 결제 내역만 취소할 수 있습니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 취소 실패 - 타임슬롯 복구(updateStatus) 실패 시 409 Conflict 발생 및 롤백")
+    void cancelReservation_TimeSlotRecoveryFailed_Rollback() {
+        // given
+        Long memberId = 1L;
+        Long reservationId = 50L;
+        Long timeSlotId = 10L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        TimeSlot timeSlot = TimeSlot.builder()
+                .id(timeSlotId)
+                .status(TimeSlotStatus.SLOT_FULL)
+                .build();
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(member)
+                .timeSlot(timeSlot)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        Payment payment = Payment.builder()
+                .id(100L)
+                .reservation(reservation)
+                .status(PaymentStatus.PAY_SUCCESS)
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+        when(paymentRepository.findByReservationId(reservationId)).thenReturn(Optional.of(payment));
+        when(timeSlotRepository.updateStatus(eq(timeSlotId), eq(TimeSlotStatus.SLOT_AVAILABLE), eq(TimeSlotStatus.SLOT_FULL), any(LocalDateTime.class)))
+                .thenReturn(0); // 복구 실패
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.cancelReservation(reservationId))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(statusEx.getReason()).isEqualTo("타임슬롯 상태 복구에 실패했습니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 취소 실패 - 다른 사용자의 예약을 취소하려 할 때 403 Forbidden 발생")
+    void cancelReservation_Forbidden() {
+        // given
+        Long memberId = 1L;
+        Long otherMemberId = 2L;
+        Long reservationId = 50L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        Member otherMember = Member.builder().id(otherMemberId).build();
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(otherMember)
+                .status(ReservationStatus.CONFIRMED)
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.cancelReservation(reservationId))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                    assertThat(statusEx.getReason()).isEqualTo("해당 예약에 대한 권한이 없습니다.");
+                });
+    }
+
+    @Test
+    @DisplayName("예약 취소 실패 - 취소 불가능한 예약 상태일 때 400 Bad Request 발생")
+    void cancelReservation_InvalidStatus() {
+        // given
+        Long memberId = 1L;
+        Long reservationId = 50L;
+
+        Member member = Member.builder().id(memberId).build();
+        setupSecurityContextAndMember(200L, member);
+
+        Reservation reservation = Reservation.builder()
+                .id(reservationId)
+                .member(member)
+                .status(ReservationStatus.COMPLETED) // 취소 불가능 상태
+                .build();
+
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));
+
+        // when & then
+        assertThatThrownBy(() -> reservationService.cancelReservation(reservationId))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    ResponseStatusException statusEx = (ResponseStatusException) ex;
+                    assertThat(statusEx.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(statusEx.getReason()).isEqualTo("취소 가능한 예약 상태가 아닙니다.");
+                });
     }
 }
