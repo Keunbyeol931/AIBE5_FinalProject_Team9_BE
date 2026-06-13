@@ -45,14 +45,6 @@ public class OwnerService {
     private final ReviewRepository reviewRepository;
     private final ReviewImageRepository reviewImageRepository;
 
-    // 사장님 테마 관리 목록
-    public List<ThemeResponse> getOwnerThemes(Long branchId) {
-        return themeRepository.findByBranchId(branchId)
-                .stream()
-                .map(ThemeResponse::from)
-                .collect(Collectors.toList());
-    }
-
     //테마 등록
     public void createTheme( ThemeCreateRequest request) {
         Long accountId = SecurityUtil.getCurrentAccountId();
