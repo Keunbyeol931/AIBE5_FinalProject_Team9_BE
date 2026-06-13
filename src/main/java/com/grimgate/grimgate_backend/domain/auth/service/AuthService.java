@@ -181,6 +181,7 @@ public class AuthService {
         Branch branch = Branch.builder()
                 .managerId(manager.getId())
                 .branchCode(branchCode)
+                .storeName(request.getStoreName())
                 .branchName(request.getBranchName())
                 .region(request.getRegion())
                 .address(request.getAddress())
