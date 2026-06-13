@@ -9,6 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ThemeResponse {
     private Long id;
+    private Long branchId;
     private String thumbnailUrl;
     private String branchName;
     private String title;
@@ -25,6 +26,7 @@ public class ThemeResponse {
     public static ThemeResponse from(Theme theme) {
         return new ThemeResponse(
                 theme.getId(),
+                theme.getBranch().getId(),
                 theme.getThumbnailUrl(),
                 theme.getBranch().getBranchName(), // Branch에서 name 꺼내기
                 theme.getTitle(),

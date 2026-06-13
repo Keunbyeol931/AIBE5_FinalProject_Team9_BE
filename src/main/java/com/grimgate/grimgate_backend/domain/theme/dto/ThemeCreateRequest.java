@@ -42,7 +42,6 @@ public class ThemeCreateRequest {
     @NotBlank
     private String description;
 
-    @NotBlank
-    private String thumbnailUrl;
+
 
 }

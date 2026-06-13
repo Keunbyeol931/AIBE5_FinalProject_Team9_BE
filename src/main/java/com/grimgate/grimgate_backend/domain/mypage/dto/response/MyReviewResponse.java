@@ -1,15 +1,15 @@
-package com.grimgate.grimgate_backend.domain.review.dto;
+package com.grimgate.grimgate_backend.domain.mypage.dto.response;
 
-//리뷰 조회 응답 DTO,프론트에 리뷰 보여줄 때 사용
-
+import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@Builder
-public class ReviewResponse {
+public class MyReviewResponse {
+    private String themeTitle;
+    private Long themeId;
     private String nickname;
     private Integer rating;
     private Integer horrorRating;
@@ -20,8 +20,10 @@ public class ReviewResponse {
     private LocalDateTime createdAt;
     private List<String> imageUrls;
 
-
-    public ReviewResponse(
+    @Builder
+    public MyReviewResponse(
+            String themeTitle,
+            Long themeId,
             String nickname,
             Integer rating,
             Integer horrorRating,
@@ -32,6 +34,8 @@ public class ReviewResponse {
             LocalDateTime createdAt,
             List<String> imageUrls
     ) {
+        this.themeTitle = themeTitle;
+        this.themeId = themeId;
         this.nickname = nickname;
         this.rating = rating;
         this.horrorRating = horrorRating;

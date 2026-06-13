@@ -103,6 +103,10 @@ public class Branch {
      *
      * Hibernate가 엔티티 최초 저장 시 자동으로 값을 채웁니다.
      */
+
+    @Column(name = "store_name", nullable = false)
+    private String storeName;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -128,6 +132,7 @@ public class Branch {
             Long managerId,
             String branchCode,
             String branchName,
+            String storeName,
             String region,
             String address,
             String phone,
@@ -137,6 +142,7 @@ public class Branch {
         this.managerId = managerId;
         this.branchCode = branchCode;
         this.branchName = branchName;
+        this.storeName = storeName;
         this.region = region;
         this.address = address;
         this.phone = phone;

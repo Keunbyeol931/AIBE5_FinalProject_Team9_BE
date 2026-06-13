@@ -4,12 +4,7 @@ import com.grimgate.grimgate_backend.domain.achievement.service.AchievementServi
 import com.grimgate.grimgate_backend.domain.mate.dto.MateParticipantResponse;
 import com.grimgate.grimgate_backend.domain.mate.service.MateParticipantService;
 import com.grimgate.grimgate_backend.domain.mypage.dto.request.MyPageProfileUpdateRequest;
-import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageAchievementResponse;
-import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMainResponse;
-import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMatePostResponse;
-import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageProfileResponse;
-import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageReservationResponse;
-import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageStatsResponse;
+import com.grimgate.grimgate_backend.domain.mypage.dto.response.*;
 import com.grimgate.grimgate_backend.domain.mypage.facade.MyPageFacade;
 import com.grimgate.grimgate_backend.domain.mypage.service.MyPageActivityService;
 import com.grimgate.grimgate_backend.domain.mypage.service.MyPageReservationService;
@@ -21,10 +16,15 @@ import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
 import com.grimgate.grimgate_backend.global.response.ApiResponse;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import com.grimgate.grimgate_backend.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -90,10 +90,18 @@ public class MyPageController {
         return ResponseEntity.ok(ApiResponse.success("프로필 수정 성공", null));
     }
     // 후기 생성
-    @PostMapping("/reviews")
+    @PostMapping(value = "/reviews", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "후기 생성",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            encoding = {@Encoding(name = "request", contentType = "application/json")}
+                    )
+            )
+    )
     public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
-            @Valid @RequestBody ReviewCreateRequest request) {
-        ReviewResponse response = mypageReservationService.createReview(request);
+           @RequestPart(value = "request") @Valid ReviewCreateRequest request,
+           @RequestPart(value = "images", required = false)List<MultipartFile> images) {
+        ReviewResponse response = mypageReservationService.createReview(request, images);
         return ResponseEntity.ok(ApiResponse.success("후기 생성 성공", response));
     }
 
@@ -114,17 +122,25 @@ public class MyPageController {
 
     // 내 후기 조회
     @GetMapping("/reviews")
-    public ResponseEntity<ApiResponse<List<ReviewResponse>>> getMyReviews() {
-        List<ReviewResponse> response = mypageActivityService.getMyReviews();
+    public ResponseEntity<ApiResponse<List<MyReviewResponse>>> getMyReviews() {
+        List<MyReviewResponse> response = mypageActivityService.getMyReviews();
         return ResponseEntity.ok(ApiResponse.success("내 후기 조회 성공", response));
     }
 
     // 내 후기 수정
-    @PatchMapping("/reviews/{reviewId}")
+    @PatchMapping(value = "/reviews/{reviewId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "후기 수정",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            encoding = {@Encoding(name = "request", contentType = "application/json")}
+                    )
+            )
+    )
     public ResponseEntity<ApiResponse<ReviewResponse>> updateMyReview(
             @PathVariable Long reviewId,
-            @Valid @RequestBody ReviewUpdateRequest request) {
-        ReviewResponse response = mypageActivityService.updateMyReview(reviewId, request);
+            @RequestPart(value = "request") @Valid ReviewUpdateRequest request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        ReviewResponse response = mypageActivityService.updateMyReview(reviewId, request, images);
         return ResponseEntity.ok(ApiResponse.success("후기 수정 성공", response));
     }
 

@@ -11,7 +11,7 @@ import lombok.Setter;
 public class ThemeSearchCondition {
     private String region;
     private Integer difficulty;
-    private Integer min_people;
+    private Integer minPeople;
     private Integer maxPeople;
     private Integer horrorLevel;
     private Double minRating; //평점
