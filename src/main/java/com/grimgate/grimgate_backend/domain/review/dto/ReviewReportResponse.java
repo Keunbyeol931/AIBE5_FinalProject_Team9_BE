@@ -22,7 +22,11 @@ public class ReviewReportResponse {
     private ReviewReportStatus status;
     private LocalDateTime createdAt;
 
-    // 사장님 처리 결과 (RR-002 / RR-003 응답에 포함)
+    // 신고 사유 / 상세 (대시보드 노출용)
+    private String reason;
+    private String detail;
+
+    // 사장님 처리 결과 (RR-002 / RR-003 응답에 포함). owner = Manager 엔티티 PK.
     private Long ownerId;
     private String ownerReason;
     private LocalDateTime ownerHandledAt;
@@ -64,6 +68,8 @@ public class ReviewReportResponse {
                 .reporterId(r.getReporter().getId())
                 .status(r.getStatus())
                 .createdAt(r.getCreatedAt())
+                .reason(r.getReason())
+                .detail(r.getDetail())
                 .ownerHandledAt(r.getOwnerHandledAt())
                 .ownerReason(r.getOwnerReason())
                 .reviewContent(r.getReview().getContent())
