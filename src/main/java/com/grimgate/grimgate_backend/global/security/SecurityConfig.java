@@ -69,9 +69,11 @@ public class SecurityConfig {
                                 "/api/auth/check-nickname"
                         ).permitAll()
 
+                        .requestMatchers("/api/s3/**").permitAll()
+
                         // Theme - 조회는 인증 불필요
                         .requestMatchers(HttpMethod.GET,
-                                "/api/themes",
+                                "/api/themes/**",
                                 "/api/themes/popular",
                                 "/api/themes/{id}",
                                 "/api/themes/{id}/reviews",

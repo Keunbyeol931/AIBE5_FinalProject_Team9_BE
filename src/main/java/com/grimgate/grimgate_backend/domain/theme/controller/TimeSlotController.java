@@ -45,13 +45,13 @@ public class TimeSlotController {
     @GetMapping("/available")
     public ResponseEntity<List<AvailableSlotsResponse>> getAvailableSlots(
             @RequestParam(value = "region", required = false) String region,
-            @RequestParam(value = "date_from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
-            @RequestParam(value = "date_to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
-            @RequestParam(value = "people_count", required = false) Integer peopleCount,
-            @RequestParam(value = "horror_level", required = false) Integer horrorLevel,
+            @RequestParam(value = "dateFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(value = "dateTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+            @RequestParam(value = "peopleCount", required = false) Integer peopleCount,
+            @RequestParam(value = "horrorLevel", required = false) Integer horrorLevel,
             @RequestParam(value = "difficulty", required = false) Integer difficulty,
-            @RequestParam(value = "min_rating", required = false) Double minRating,
-            @RequestParam(value = "sort", required = false, defaultValue = "rating_desc") String sort
+            @RequestParam(value = "minRating", required = false) Double minRating,
+            @RequestParam(value = "sort", required = false, defaultValue = "ratingDesc") String sort
     ) {
         List<AvailableSlotsResponse> response = timeSlotService.getAvailableSlots(
                 region, dateFrom, dateTo, peopleCount, horrorLevel, difficulty, minRating, sort

@@ -20,6 +20,7 @@ import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsRespo
 import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationStatsProjection;
 import java.time.LocalDate;
 
+import com.grimgate.grimgate_backend.global.S3.S3Uploader;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
@@ -29,6 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +45,7 @@ public class OwnerService {
     private final ReservationRepository reservationRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewImageRepository reviewImageRepository;
+    private final S3Uploader s3Uploader;
 
     // 사장님 테마 관리 목록
     public List<ThemeResponse> getOwnerThemes(Long branchId) {
@@ -53,7 +56,8 @@ public class OwnerService {
     }
 
     //테마 등록
-    public ThemeCreateResponse createTheme(ThemeCreateRequest request) {
+    public ThemeCreateResponse createTheme(ThemeCreateRequest request, MultipartFile thumbnail) {
+        String thumbnailUrl = s3Uploader.upload(thumbnail, "themes");
         Long accountId = SecurityUtil.getCurrentAccountId();
         Manager manager = managerRepository.findByAccount_Id(accountId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
@@ -74,7 +78,7 @@ public class OwnerService {
                 .rating(0.0)
                 .reviewCount(0)
                 .tags(request.getTags())
-                .thumbnailUrl(request.getThumbnailUrl())
+                .thumbnailUrl(thumbnailUrl)
                 .build();
 
         Theme savedTheme = themeRepository.save(theme);
@@ -83,7 +87,7 @@ public class OwnerService {
 
     //테마 수정
     @Transactional
-    public ThemeUpdateResponse updateTheme(Long themeId, ThemeUpdateRequest request) {
+    public ThemeUpdateResponse updateTheme(Long themeId, ThemeUpdateRequest request, MultipartFile thumbnail) {
 
         Long accountId = SecurityUtil.getCurrentAccountId();
         Manager manager = managerRepository.findByAccount_Id(accountId)
@@ -110,6 +114,13 @@ public class OwnerService {
         if (minPeople > maxPeople) {
             throw new CustomException(ErrorCode.INVALID_THEME_CAPACITY);
         }
+
+        // 이미지 변경 요청이 있을 때만 업로드
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            String thumbnailUrl = s3Uploader.upload(thumbnail, "themes");
+            theme.updateThumbnail(thumbnailUrl);
+        }
+
         theme.update(request);
         return new ThemeUpdateResponse(theme.getId(), LocalDateTime.now());
     }

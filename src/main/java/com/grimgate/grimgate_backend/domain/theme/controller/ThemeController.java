@@ -42,9 +42,9 @@ public class ThemeController {
         return themeService.getThemeDetail(id);
     }
 
-    @GetMapping("/branches/{id}")
-    public BranchDetailResponse getBranches(@PathVariable Long id) {
-        return themeService.getBranches(id);
+    @GetMapping("{themeId}/branches")
+    public BranchDetailResponse getBranches(@PathVariable Long themeId) {
+        return themeService.getBranches(themeId);
     }
 
 
@@ -59,7 +59,7 @@ public class ThemeController {
     @GetMapping("/{id}/slots")
     public ResponseEntity<List<TimeSlotResponse>> getThemeSlots(
             @PathVariable("id") Long id,
-            @RequestParam("slot_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate slotDate
+            @RequestParam("slotDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate slotDate
     ) {
         List<TimeSlotResponse> responses = themeService.getSlotsByThemeAndDate(id, slotDate);
         return ResponseEntity.ok(responses);

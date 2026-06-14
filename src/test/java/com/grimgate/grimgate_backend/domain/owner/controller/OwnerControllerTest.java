@@ -12,6 +12,8 @@ import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsRespo
 
 import com.grimgate.grimgate_backend.domain.owner.service.OwnerService;
 import com.grimgate.grimgate_backend.domain.reservation.entity.ReservationStatus;
+import com.grimgate.grimgate_backend.domain.review.service.ReviewReportService;
+import com.grimgate.grimgate_backend.global.S3.S3Uploader;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,12 @@ class OwnerControllerTest {
 
     @MockBean
     private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @MockBean
+    private S3Uploader s3Uploader;
+
+    @MockBean
+    private ReviewReportService reviewReportService;
 
     @Test
     @DisplayName("GET /api/owner/reservations - 예약 검색 API 성공 시 200 OK와 페이징 정보 반환")
@@ -98,8 +106,8 @@ class OwnerControllerTest {
 
         // when & then
         mockMvc.perform(get("/api/owner/reservations/stats")
-                        .param("date_from", "2026-06-01")
-                        .param("date_to", "2026-06-30")
+                        .param("dateFrom", "2026-06-01")
+                        .param("dateTo", "2026-06-30")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
