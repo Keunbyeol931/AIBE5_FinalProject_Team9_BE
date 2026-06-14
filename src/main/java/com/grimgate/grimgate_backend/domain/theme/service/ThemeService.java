@@ -57,9 +57,9 @@ public class ThemeService {
 
                 // 최소 인원 필터
                 .filter(theme ->
-                        condition.getMin_people() == null
-                                || condition.getMin_people() == 0
-                                || theme.getMinPeople().equals( condition.getMin_people())
+                        condition.getMinPeople() == null
+                                || condition.getMinPeople() == 0
+                                || theme.getMinPeople().equals( condition.getMinPeople())
                 )
 
                 //최소 평점
@@ -82,6 +82,7 @@ public class ThemeService {
 
                 .map(theme -> new ThemeResponse(
                         theme.getId(),
+                        theme.getBranch().getId(),
                         theme.getThumbnailUrl(),
                         theme.getBranch().getBranchName(),
                         theme.getTitle(),
@@ -108,6 +109,7 @@ public class ThemeService {
                 theme.getMinPeople(),
                 theme.getMaxPeople(),
                 theme.getThumbnailUrl(),
+                theme.getBranch().getId(),
                 theme.getBranch().getBranchCode(),
                 theme.getBranch().getBranchName(),
                 theme.getBranch().getRegion(),
@@ -130,6 +132,7 @@ public class ThemeService {
                 theme.getMaxPeople(),
                 theme.getThumbnailUrl(),
                 branch.getBranchName(),
+                branch.getStoreName(),
                 branch.getRegion(),
                 branch.getOperatingHours(),
                 branch.getPhone(),

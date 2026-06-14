@@ -16,7 +16,7 @@ toss:
 
 gemini:
   api-key: ${GEMINI_API_KEY:dummy_gemini_api_key}
-  model: ${GEMINI_MODEL:gemini-1.5-flash}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
 
 jwt:
   secret: ${JWT_SECRET:dummySecretKeyLocalTestAtLeastThirtyTwoBytesLong}

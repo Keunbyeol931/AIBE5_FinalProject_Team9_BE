@@ -8,6 +8,7 @@ import lombok.Getter;
 @Getter
 public class ThemeDetailResponse extends TabCommonResponse {
     //상세정보 탭
+    private Long branchId;
     private String branchCode;
     private String branchName;
     private String region;
@@ -18,9 +19,10 @@ public class ThemeDetailResponse extends TabCommonResponse {
 
     public ThemeDetailResponse(Double rating, Integer reviewCount, Integer minPeople,
                                Integer maxPeople, Integer playTime,String thumbnailUrl,
-                               String branchCode, String branchName, String region,
+                               Long branchId, String branchCode, String branchName, String region,
                               Integer difficulty,Integer horrorLevel, Integer price, String description) {
         super(rating, reviewCount, minPeople, maxPeople, playTime, thumbnailUrl);
+        this.branchId = branchId;
         this.branchCode = branchCode;
         this.branchName = branchName;
         this.region = region;

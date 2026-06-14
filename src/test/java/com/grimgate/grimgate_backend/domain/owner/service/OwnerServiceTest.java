@@ -19,6 +19,7 @@ import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequ
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlot;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
+import com.grimgate.grimgate_backend.global.S3.S3Uploader;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import org.junit.jupiter.api.DisplayName;
@@ -70,6 +71,8 @@ public class OwnerServiceTest {
     @Mock
     private ReviewImageRepository reviewImageRepository;
 
+    @Mock private S3Uploader s3Uploader;
+
     @Test
     @DisplayName("테마 등록 성공")
     void createTheme_success() {
@@ -108,7 +111,8 @@ public class OwnerServiceTest {
                                 .build();
                     });
 
-            ThemeCreateResponse response = ownerService.createTheme(request);
+            when(s3Uploader.upload(any(), any())).thenReturn("https://test-url.jpg");
+            ThemeCreateResponse response = ownerService.createTheme(request, null);
             assertThat(response).isNotNull();
             assertThat(response.id()).isNotNull();
             assertThat(response.createdAt()).isNotNull();
@@ -135,7 +139,7 @@ public class OwnerServiceTest {
             when(themeRepository.findById(any())).thenReturn(Optional.of(theme));
 
             // when
-            ownerService.updateTheme(1L, request);
+            ownerService.updateTheme(1L, request, null);
 
             // then
             verify(themeRepository, times(1)).findById(1L);
@@ -183,7 +187,7 @@ public class OwnerServiceTest {
             when(themeRepository.findById(any())).thenReturn(Optional.of(theme));
 
             // then - 예외 발생해야 함
-            assertThrows(CustomException.class, () -> ownerService.updateTheme(1L, request));
+            assertThrows(CustomException.class, () -> ownerService.updateTheme(1L, request, null));
             assertThrows(CustomException.class, () -> ownerService.deleteTheme(1L));
         }
     }
