@@ -14,7 +14,6 @@ import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
 import com.grimgate.grimgate_backend.global.response.ApiResponse;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
-import com.grimgate.grimgate_backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
