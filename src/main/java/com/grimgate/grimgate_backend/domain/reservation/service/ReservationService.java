@@ -2,6 +2,10 @@ package com.grimgate.grimgate_backend.domain.reservation.service;
 
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
+import com.grimgate.grimgate_backend.domain.payment.entity.Payment;
+import com.grimgate.grimgate_backend.domain.payment.entity.PaymentStatus;
+import com.grimgate.grimgate_backend.domain.payment.repository.PaymentRepository;
+import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCancelResponse;
 import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCreateRequest;
 import com.grimgate.grimgate_backend.domain.reservation.dto.ReservationCreateResponse;
 import com.grimgate.grimgate_backend.domain.reservation.entity.Reservation;
@@ -13,6 +17,7 @@ import com.grimgate.grimgate_backend.domain.theme.entity.TimeSlotStatus;
 import com.grimgate.grimgate_backend.domain.theme.repository.TimeSlotRepository;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -35,6 +40,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final TimeSlotRepository timeSlotRepository;
     private final MemberRepository memberRepository;
+    private final PaymentRepository paymentRepository;
     private final StringRedisTemplate stringRedisTemplate;
 
     private static final RedisScript<Long> COMPARE_AND_DELETE_SCRIPT;
@@ -172,5 +178,78 @@ public class ReservationService {
         } catch (Exception e) {
             log.error("Redis 선점 정보 삭제 중 예외 발생 (예약은 정상 등록됨): Key={}", key, e);
         }
+    }
+
+    @Transactional
+    public ReservationCancelResponse cancelReservation(Long reservationId) {
+        // 1. 로그인 회원 정보 조회
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Member member = memberRepository.findByAccount_Id(accountId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."));
+
+        // 2. 예약 내역 조회
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "예약을 찾을 수 없습니다."));
+
+        // 3. 예약 소유자 검증 (본인 예약만 취소 가능)
+        if (!reservation.getMember().getId().equals(member.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "해당 예약에 대한 권한이 없습니다.");
+        }
+
+        // 4. 취소 가능 상태 검증 (PENDING_PAYMENT, CONFIRMED 상태만 허용)
+        ReservationStatus oldStatus = reservation.getStatus();
+        if (oldStatus != ReservationStatus.PENDING_PAYMENT && oldStatus != ReservationStatus.CONFIRMED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "취소 가능한 예약 상태가 아닙니다.");
+        }
+
+        // 5. 결제 및 타임슬롯 상태 복구 처리
+        if (oldStatus == ReservationStatus.PENDING_PAYMENT) {
+            // PENDING_PAYMENT 예약 취소 시:
+            // 결제 내역이 존재하면 PAY_FAILED로 처리하고 실패 사유 기록
+            Optional<Payment> paymentOpt = paymentRepository.findByReservationId(reservationId);
+            paymentOpt.ifPresent(payment -> payment.fail("사용자 예약 취소로 결제 진행 중단"));
+
+            // 타임슬롯 복구: SLOT_HELD -> SLOT_AVAILABLE
+            int updatedRows = timeSlotRepository.updateStatus(
+                    reservation.getTimeSlot().getId(),
+                    TimeSlotStatus.SLOT_AVAILABLE,
+                    TimeSlotStatus.SLOT_HELD,
+                    LocalDateTime.now()
+            );
+            if (updatedRows == 0) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "타임슬롯 상태 복구에 실패했습니다.");
+            }
+        } else {
+            // CONFIRMED 예약 취소 시:
+            // 결제 내역 필수 존재 및 PAY_SUCCESS 검증
+            Payment payment = paymentRepository.findByReservationId(reservationId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "결제 내역을 찾을 수 없습니다."));
+            if (payment.getStatus() != PaymentStatus.PAY_SUCCESS) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "결제 완료 상태의 결제 내역만 취소할 수 있습니다.");
+            }
+
+            // 결제 상태 변경: PAY_SUCCESS -> PAY_REFUND_PENDING
+            payment.refundPending("사용자 예약 취소로 인한 환불 대기");
+
+            // 타임슬롯 복구: SLOT_FULL -> SLOT_AVAILABLE
+            int updatedRows = timeSlotRepository.updateStatus(
+                    reservation.getTimeSlot().getId(),
+                    TimeSlotStatus.SLOT_AVAILABLE,
+                    TimeSlotStatus.SLOT_FULL,
+                    LocalDateTime.now()
+            );
+            if (updatedRows == 0) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "타임슬롯 상태 복구에 실패했습니다.");
+            }
+        }
+
+        // 6. 예약 상태 변경 및 저장
+        reservation.cancel();
+        Reservation savedReservation = reservationRepository.save(reservation);
+
+        return ReservationCancelResponse.builder()
+                .reservationId(savedReservation.getId())
+                .status(savedReservation.getStatus().name())
+                .build();
     }
 }

@@ -15,13 +15,31 @@ import java.util.Optional;
 @Repository
 public interface ReviewReportRepository extends JpaRepository<ReviewReport, Long> {
 
+    // ---------- 공통 ----------
+
     /** (review, reporter) 중복 신고 차단용 */
     boolean existsByReview_IdAndReporter_Id(Long reviewId, Long reporterId);
+
+    /** 한 후기에 달린 모든 신고 (관리자/검증용) */
+    List<ReviewReport> findAllByReview_Id(Long reviewId);
+
+    // ---------- 관리자 영역 (#71) ----------
+
+    /** 처리 상태별 신고 목록 페이징 (관리자 숨김 요청 목록) */
+    Page<ReviewReport> findByStatus(ReviewReportStatus status, Pageable pageable);
+
+    /** 관리자 통계 — 처리 상태별 신고 수 집계 */
+    long countByStatus(ReviewReportStatus status);
+
+    /** (관리자/오너 공용) 지점 매니저 기준 단순 페이징 */
+    Page<ReviewReport> findByReview_Theme_Branch_ManagerId(Long managerId, Pageable pageable);
+
+    // ---------- 사장님 영역 (#74) ----------
 
     /**
      * 사장님이 운영하는 지점들의 테마에 달린 후기에 대한 신고 목록 조회 (상태 필터).
      *
-     * <p>N+1 방지를 위해 review, theme 까지 fetch join.
+     * <p>N+1 방지를 위해 review, theme, branch 까지 fetch join.
      */
     @Query(value = """
             SELECT rr
@@ -80,7 +98,7 @@ public interface ReviewReportRepository extends JpaRepository<ReviewReport, Long
                 : findOwnerReportsByStatus(managerId, status, pageable);
     }
 
-    /** 사장님 권한 검증을 동시에 수행하는 단건 조회. (소유 지점 매니저만 조회 가능) */
+    /** 사장님 권한 검증을 동시에 수행하는 단건 조회 (소유 지점 매니저만 조회 가능) */
     @Query("""
             SELECT rr
             FROM ReviewReport rr
@@ -94,6 +112,4 @@ public interface ReviewReportRepository extends JpaRepository<ReviewReport, Long
             @Param("reportId") Long reportId,
             @Param("managerId") Long managerId
     );
-
-    List<ReviewReport> findAllByReview_Id(Long reviewId);
 }

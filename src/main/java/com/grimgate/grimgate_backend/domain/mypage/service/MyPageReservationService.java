@@ -13,12 +13,15 @@ import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageReposit
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
+import com.grimgate.grimgate_backend.global.S3.S3Uploader;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -33,10 +36,11 @@ public class MyPageReservationService {
     private final MemberRepository memberRepository;
     private final ReviewImageRepository reviewImageRepository;
     private final ThemeRepository themeRepository;
+    private final S3Uploader s3Uploader;
 
 
     //후기 작성
-    public ReviewResponse createReview( ReviewCreateRequest request) {
+    public ReviewResponse createReview(ReviewCreateRequest request, List<MultipartFile> images) {
         Long accountId = SecurityUtil.getCurrentAccountId();
 
         Member member = memberRepository.findByAccount_Id(accountId)
@@ -69,8 +73,7 @@ public class MyPageReservationService {
         Theme theme = reservation.getTimeSlot().getTheme();
 
         // 이미지 최대 3장 검증
-        if (request.getImageUrls() != null && request.getImageUrls().size() > 3) {
-
+        if (images!= null && images.size() > 3) {
             throw new CustomException(ErrorCode.IMAGE_LIMIT_EXCEEDED);
         }
 
@@ -88,16 +91,15 @@ public class MyPageReservationService {
         themeRepository.save(theme);
 
         // 이미지 저장
-        if (request.getImageUrls() != null ) {
-            List<String> imageUrls = request.getImageUrls();
-            List<ReviewImage> images = IntStream.range(0, imageUrls.size())
+        if (images != null && !images.isEmpty() ) {
+            List<ReviewImage> reviewImages = IntStream.range(0, images.size())
                     .mapToObj(i -> ReviewImage.builder()
                             .review(review)
-                            .imageUrl(imageUrls.get(i))
+                            .imageUrl(s3Uploader.upload(images.get(i), "reviews"))
                             .imageOrder(String.valueOf(i + 1))
                             .build())
                     .toList();
-            reviewImageRepository.saveAll(images);
+            reviewImageRepository.saveAll(reviewImages);
         }
 
         // 저장된 이미지 조회

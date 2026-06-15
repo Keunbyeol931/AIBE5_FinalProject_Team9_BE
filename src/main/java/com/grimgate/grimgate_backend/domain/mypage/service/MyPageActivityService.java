@@ -4,6 +4,7 @@ import com.grimgate.grimgate_backend.domain.mate.repository.MatePostRepository;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyPageMatePostResponse;
+import com.grimgate.grimgate_backend.domain.mypage.dto.response.MyReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewDeleteResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewResponse;
 import com.grimgate.grimgate_backend.domain.review.dto.ReviewUpdateRequest;
@@ -13,6 +14,7 @@ import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageReposit
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
+import com.grimgate.grimgate_backend.global.S3.S3Uploader;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
@@ -20,8 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -35,9 +37,10 @@ public class MyPageActivityService {
     private final ReviewImageRepository reviewImageRepository;
     private final ThemeRepository themeRepository;
     private final MatePostRepository matePostRepository;
+    private final S3Uploader s3Uploader;
 
     // 내 후기 조회
-    public List<ReviewResponse> getMyReviews(){
+    public List<MyReviewResponse> getMyReviews(){
         Long accountId = SecurityUtil.getCurrentAccountId();
         Member member = memberRepository.findByAccount_Id(accountId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -49,8 +52,10 @@ public class MyPageActivityService {
                                 .map(ReviewImage::getImageUrl)
                                 .toList();
 
-                      return ReviewResponse.builder()
-                        .nickname(review.getMember().getAccount().getNickname())
+                      return MyReviewResponse.builder()
+                              .themeTitle(review.getTheme().getTitle())
+                              .themeId(review.getTheme().getId())
+                              .nickname(review.getMember().getAccount().getNickname())
                         .rating(review.getRating())
                         .horrorRating(review.getHorrorRating())
                         .difficultyRating(review.getDifficultyRating())
@@ -66,7 +71,7 @@ public class MyPageActivityService {
 
     // 내 후기 수정
     @Transactional
-    public ReviewResponse updateMyReview(Long reviewId, ReviewUpdateRequest request){
+    public ReviewResponse updateMyReview(Long reviewId, ReviewUpdateRequest request, List<MultipartFile> images){
         Long accountId = SecurityUtil.getCurrentAccountId();
         Member member = memberRepository.findByAccount_Id(accountId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -78,7 +83,7 @@ public class MyPageActivityService {
         }
 
         // 이미지 최대 3장 검증
-        if (request.getImageUrls() != null && request.getImageUrls().size() > 3) {
+        if (images != null && images.size() > 3) {
             throw new CustomException(ErrorCode.IMAGE_LIMIT_EXCEEDED);
         }
 
@@ -86,16 +91,15 @@ public class MyPageActivityService {
 
 // 기존 이미지 삭제 후 새로 저장
         reviewImageRepository.deleteByReviewId(reviewId);
-        if (request.getImageUrls() != null) {
-            List<String> imageUrls = request.getImageUrls();
-            List<ReviewImage> images = IntStream.range(0, imageUrls.size())
+        if (images != null && !images.isEmpty()) {
+            List<ReviewImage> reviewImages = IntStream.range(0, images.size())
                     .mapToObj(i -> ReviewImage.builder()
                             .review(review)
-                            .imageUrl(imageUrls.get(i))
+                            .imageUrl(s3Uploader.upload(images.get(i), "reviews"))
                             .imageOrder(String.valueOf(i + 1))
                             .build())
                     .toList();
-            reviewImageRepository.saveAll(images);
+            reviewImageRepository.saveAll(reviewImages);
         }
 
         // theme rating 재계산
@@ -147,7 +151,7 @@ public class MyPageActivityService {
 
     //내 후기 삭제
     @Transactional
-    public ReviewDeleteResponse deleteMyReview(Long reviewId) {
+    public void deleteMyReview(Long reviewId) {
         Long accountId = SecurityUtil.getCurrentAccountId();
 
         Member member = memberRepository.findByAccount_Id(accountId)
@@ -160,15 +164,14 @@ public class MyPageActivityService {
             throw new CustomException(ErrorCode.REVIEW_NOT_OWNER);
         }
 
-        // theme rating 재계산
-        Theme theme = review.getTheme();
-
         // 이미지 먼저 삭제
         reviewImageRepository.deleteByReviewId(reviewId);
 
         // 후기 삭제
         reviewRepository.delete(review);
 
+        // theme rating 재계산
+        Theme theme = review.getTheme();
 
         List<Review> remaining = reviewRepository.findByThemeId(theme.getId());
         double average = remaining.stream()
@@ -178,8 +181,6 @@ public class MyPageActivityService {
         double newRating = Math.round(average * 10.0) / 10.0;
         theme.updateRating(newRating, remaining.size());
         themeRepository.save(theme);
-
-        return new ReviewDeleteResponse(review.getId(), LocalDateTime.now());
 
     }
 

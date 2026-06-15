@@ -237,6 +237,10 @@ public class Theme {
 
     //프론트에서 수정 요청이 오면 기존 테마 객체의 필드값을 새로운 값으로 덮어씀
     //일부만 수정 가능하도록
+    public void updateThumbnail(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl; //updateThumbnail은 파일 있을 때만 호출되니까 이미지 안 보내면 그대로
+    }
+
     public void update(ThemeUpdateRequest request) {
         if (request.getTitle() != null) this.title = request.getTitle();
         if (request.getDescription() != null) this.description = request.getDescription();
@@ -248,7 +252,7 @@ public class Theme {
         if (request.getMinPeople() != null) this.minPeople = request.getMinPeople();
         if (request.getMaxPeople() != null) this.maxPeople = request.getMaxPeople();
         if (request.getPrice() != null) this.price = request.getPrice();
-        if (request.getThumbnailUrl() != null) this.thumbnailUrl = request.getThumbnailUrl();
+
     }
 
     public void updateRating(double rating, int reviewCount) {

@@ -12,9 +12,12 @@ import com.grimgate.grimgate_backend.domain.member.entity.Member;
 import com.grimgate.grimgate_backend.domain.member.entity.ProfileCharacter;
 import com.grimgate.grimgate_backend.domain.member.repository.MemberRepository;
 import com.grimgate.grimgate_backend.domain.member.repository.ProfileCharacterRepository;
+import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
+import com.grimgate.grimgate_backend.domain.theme.repository.BranchRepository;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.JwtProvider;
+import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -32,6 +36,7 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final ManagerRepository managerRepository;
     private final ProfileCharacterRepository profileCharacterRepository;
+    private final BranchRepository branchRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProvider jwtProvider;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -100,6 +105,91 @@ public class AuthService {
 
             managerRepository.save(manager);
         }
+
+        // 토큰 생성 (회원가입 즉시 로그인 처리)
+        String accessToken = jwtProvider.generateAccessToken(account.getId(), account.getRole().name());
+        String refreshToken = jwtProvider.generateRefreshToken(account.getId());
+
+        // Redis에 리프레시 토큰 저장 (기본 TTL: 7일)
+        RefreshToken refreshTokenEntity = RefreshToken.builder()
+                .id(String.valueOf(account.getId()))
+                .accountId(account.getId())
+                .token(refreshToken)
+                .ttl(REFRESH_TOKEN_TTL_DEFAULT)
+                .build();
+
+        refreshTokenRepository.save(refreshTokenEntity);
+
+        return SignupResponse.builder()
+                .id(account.getId())
+                .nickname(account.getNickname())
+                .email(account.getEmail())
+                .createdAt(account.getCreatedAt())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(ACCESS_TOKEN_EXPIRES_IN)
+                .build();
+    }
+
+    // 매니저 회원가입 (지점 정보 포함)
+    @Transactional
+    public SignupResponse signupManager(ManagerSignupRequest request) {
+        // 이메일 중복 체크
+        if (accountRepository.existsByEmail(request.getEmail())) {
+            throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        // 닉네임 중복 체크
+        if (accountRepository.existsByNickname(request.getNickname())) {
+            throw new CustomException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+        }
+
+        // 약관 동의 확인
+        if (!request.isTermsAgreed()) {
+            throw new CustomException(ErrorCode.TERMS_NOT_AGREED);
+        }
+
+        // 비밀번호 암호화
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+
+        // Account 저장
+        Account account = Account.builder()
+                .nickname(request.getNickname())
+                .email(request.getEmail())
+                .password(encodedPassword)
+                .phone(request.getPhone())
+                .role(Role.MANAGER)
+                .gender(request.getGender())
+                .age(request.getAge())
+                .notificationEnabled(request.isMarketingAgreed())
+                .build();
+
+        accountRepository.save(account);
+
+        // Manager 저장
+        Manager manager = Manager.builder()
+                .account(account)
+                .build();
+
+        managerRepository.save(manager);
+
+        // branchCode 자동생성 (UUID 앞 8자리 대문자)
+        String branchCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        // Branch 저장
+        Branch branch = Branch.builder()
+                .managerId(manager.getId())
+                .branchCode(branchCode)
+                .storeName(request.getStoreName())
+                .branchName(request.getBranchName())
+                .region(request.getRegion())
+                .address(request.getAddress())
+                .phone(request.getBranchPhone())
+                .operatingHours("")
+                .build();
+
+        branchRepository.save(branch);
 
         // 토큰 생성 (회원가입 즉시 로그인 처리)
         String accessToken = jwtProvider.generateAccessToken(account.getId(), account.getRole().name());
@@ -297,6 +387,15 @@ public class AuthService {
 
         // 새 비밀번호 암호화 후 업데이트
         account.updatePassword(passwordEncoder.encode(request.getNewPassword()));
+    }
+
+    // 내 정보 조회
+    @Transactional(readOnly = true)
+    public MeResponse getCurrentUser() {
+        Long accountId = SecurityUtil.getCurrentAccountId();
+        Account account = accountRepository.findByIdAndDeletedAtIsNull(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ACCOUNT_NOT_FOUND));
+        return MeResponse.from(account);
     }
 
     // 이메일 중복 확인

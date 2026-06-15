@@ -31,5 +31,4 @@ public class ReviewUpdateRequest {
     @NotNull
     private Boolean spoiler;
 
-    private List<String> imageUrls;
 }

@@ -50,6 +50,8 @@ public class AchievementService {
                             .id(achievement.getId())
                             .name(achievement.getName())
                             .description(achievement.getDescription())
+                            .conditionType(achievement.getConditionType())
+                            .conditionValue(achievement.getConditionValue())
                             .isAcquired(ma != null)
                             .acquiredAt(ma != null ? ma.getAcquiredAt() : null)
                             .build();

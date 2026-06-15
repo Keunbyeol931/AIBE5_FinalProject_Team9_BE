@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
+@Builder
 public class ReviewResponse {
     private String nickname;
     private Integer rating;
@@ -19,7 +20,7 @@ public class ReviewResponse {
     private LocalDateTime createdAt;
     private List<String> imageUrls;
 
-    @Builder
+
     public ReviewResponse(
             String nickname,
             Integer rating,

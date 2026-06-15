@@ -42,4 +42,5 @@ public class ReviewController {
         return reviewService.getReviewById(reviewId);
     }
 
+    // 후기 신고 접수는 ReviewReportController 에서 제공 (POST /api/reviews/{id}/reports)
 }

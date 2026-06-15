@@ -41,6 +41,9 @@ public enum ErrorCode {
     REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "후기를 찾을 수 없습니다."),
     REVIEW_NOT_OWNER(HttpStatus.FORBIDDEN, "본인의 후기만 수정/삭제할 수 있습니다."),
     IMAGE_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지는 최대 3장까지 등록 가능합니다."),
+    REVIEW_REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 후기입니다."),
+    REVIEW_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 내역을 찾을 수 없습니다."),
+    INVALID_REVIEW_REPORT_STATUS(HttpStatus.BAD_REQUEST, "현재 상태에서는 해당 처리를 수행할 수 없습니다."),
 
     // 지점/테마 (사장님 페이지)
     BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, "지점을 찾을 수 없습니다."),
@@ -77,9 +80,10 @@ public enum ErrorCode {
     INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST, "결제 승인이 가능한 상태가 아닙니다."),
     WEBHOOK_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "웹훅 서명 검증에 실패했습니다."),
 
-    // 후기 신고 (Review Report)
-    REVIEW_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "신고 내역을 찾을 수 없습니다."),
-    REVIEW_REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 후기입니다."),
+    // 엑셀 내보내기
+    EXCEL_EXPORT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "엑셀 파일 생성에 실패했습니다."),
+
+    // 후기 신고 사장님 영역 (RR-001~003)
     REVIEW_REPORT_SELF_FORBIDDEN(HttpStatus.BAD_REQUEST, "본인이 작성한 후기는 신고할 수 없습니다."),
     REVIEW_REPORT_REASON_REQUIRED(HttpStatus.BAD_REQUEST, "신고 사유는 필수입니다."),
     REVIEW_REPORT_OWNER_REASON_REQUIRED(HttpStatus.BAD_REQUEST, "숨김 요청 사유는 필수입니다."),

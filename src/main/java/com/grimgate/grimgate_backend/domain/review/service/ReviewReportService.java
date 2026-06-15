@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 후기 신고/숨김 처리 서비스.
  *
  * <p>이번 PR 범위: RR-001(사용자 신고 접수) + RR-002/003(사장님 1차 판정) + 사장님 신고 목록 조회.
- * 관리자 단(RR-004~006)은 후속 PR.
+ * 관리자 단(RR-004~006)은 별도 서비스/PR.
  */
 @Service
 @RequiredArgsConstructor
@@ -81,7 +81,7 @@ public class ReviewReportService {
     @Transactional
     public ReviewReportResponse restoreByOwner(Long reportId) {
         ReviewReport report = loadReportAsOwner(reportId);
-        if (!report.isPendingOwnerReview()) {
+        if (report.getStatus() != ReviewReportStatus.PENDING_OWNER_REVIEW) {
             throw new CustomException(ErrorCode.REVIEW_REPORT_NOT_PENDING_OWNER);
         }
 
@@ -97,7 +97,7 @@ public class ReviewReportService {
     @Transactional
     public ReviewReportResponse requestHideByOwner(Long reportId, ReviewReportHideRequest request) {
         ReviewReport report = loadReportAsOwner(reportId);
-        if (!report.isPendingOwnerReview()) {
+        if (report.getStatus() != ReviewReportStatus.PENDING_OWNER_REVIEW) {
             throw new CustomException(ErrorCode.REVIEW_REPORT_NOT_PENDING_OWNER);
         }
 
@@ -115,13 +115,6 @@ public class ReviewReportService {
         Long accountId = SecurityUtil.getCurrentAccountId();
         return managerRepository.findByAccount_Id(accountId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MANAGER_NOT_FOUND));
-    }
-
-    /** 현재 로그인 사용자(사장님)의 Member 엔티티. owner_id 컬럼 저장용. */
-    private Member currentMember() {
-        Long accountId = SecurityUtil.getCurrentAccountId();
-        return memberRepository.findByAccount_Id(accountId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
     /**

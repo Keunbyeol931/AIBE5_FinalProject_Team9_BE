@@ -1,19 +1,20 @@
 package com.grimgate.grimgate_backend.domain.review.entity;
 
+import com.grimgate.grimgate_backend.domain.account.entity.Account;
 import com.grimgate.grimgate_backend.domain.manager.entity.Manager;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
+import com.grimgate.grimgate_backend.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 /**
  * 후기 신고 엔티티.
  *
- * <p>한 회원이 한 후기에 대해 1건만 신고할 수 있다(unique 제약).
+ * <p>한 회원은 한 후기에 대해 1건만 신고 가능 (uk_review_report_review_reporter).
  * 신고 → 사장님 1차 판정 → (필요 시) 관리자 2차 판정으로 흐른다.
  */
 @Entity
@@ -26,7 +27,7 @@ import java.time.LocalDateTime;
                 columnNames = {"review_id", "reporter_id"}
         )
 )
-public class ReviewReport {
+public class ReviewReport extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,85 +38,99 @@ public class ReviewReport {
     @JoinColumn(name = "review_id", nullable = false)
     private Review review;
 
-    /** 신고자 (회원) */
+    /** 신고자 (일반 회원) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id", nullable = false)
     private Member reporter;
 
-    /** 신고 사유 코드/카테고리 (자유 문자열) */
+    /** 신고 사유 (선택지) */
     @Column(nullable = false, length = 50)
     private String reason;
 
-    /** 신고 상세 사유 (선택) */
+    /** 신고 상세 내용 */
     @Column(columnDefinition = "TEXT")
     private String detail;
 
+    /** 신고 처리 상태 */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private ReviewReportStatus status;
 
-    /** 사장님 처리자 (RR-002/003 시) — Manager 엔티티 PK 참조. */
+    /** 처리한 오너 (방탈출 업체 매니저) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private Manager owner;
 
-    /** 사장님 숨김요청 사유 */
+    /** 오너 처리 사유 */
     @Column(name = "owner_reason", columnDefinition = "TEXT")
     private String ownerReason;
 
+    /** 오너 처리 일시 */
     @Column(name = "owner_handled_at")
     private LocalDateTime ownerHandledAt;
 
-    /** 관리자 처리자 (RR-005/006 시, 이번 PR에서는 미사용) */
+    /** 처리한 관리자 계정 */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
-    private Member admin;
+    private Account admin;
 
+    /** 관리자 처리 사유 */
     @Column(name = "admin_reason", columnDefinition = "TEXT")
     private String adminReason;
 
+    /** 관리자 처리 일시 */
     @Column(name = "admin_handled_at")
     private LocalDateTime adminHandledAt;
 
+    /** 최종 해결 일시 */
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    // ---------- 정적 생성 ----------
-
-    public static ReviewReport create(Review review, Member reporter, String reason, String detail) {
-        ReviewReport r = new ReviewReport();
-        r.review = review;
-        r.reporter = reporter;
-        r.reason = reason;
-        r.detail = detail;
-        r.status = ReviewReportStatus.PENDING_OWNER_REVIEW;
-        return r;
-    }
-
-    // ---------- 도메인 메서드 ----------
-
-    /** 사장님 "문제없음" 복구 처리 */
+    /** 오너가 후기를 복구 처리 (사장님 1차 판정에서 종결) */
     public void restoreByOwner(Manager owner) {
+        LocalDateTime now = LocalDateTime.now();
         this.owner = owner;
+        this.ownerHandledAt = now;
+        this.resolvedAt = now;
         this.status = ReviewReportStatus.OWNER_RESTORED;
-        this.ownerHandledAt = LocalDateTime.now();
-        this.resolvedAt = this.ownerHandledAt;
     }
 
-    /** 사장님 관리자 숨김 요청 */
+    /** 오너가 관리자 검토를 요청하며 숨김 처리 */
     public void requestHideByOwner(Manager owner, String ownerReason) {
         this.owner = owner;
         this.ownerReason = ownerReason;
-        this.status = ReviewReportStatus.REQUESTED_ADMIN_REVIEW;
         this.ownerHandledAt = LocalDateTime.now();
+        this.status = ReviewReportStatus.REQUESTED_ADMIN_REVIEW;
     }
 
-    /** 사장님이 1차 판정을 완료한 상태인지 */
-    public boolean isPendingOwnerReview() {
-        return this.status == ReviewReportStatus.PENDING_OWNER_REVIEW;
+    /** 관리자가 신고를 승인 처리 (신고 인정) */
+    public void approveByAdmin(Account admin, String adminReason) {
+        LocalDateTime now = LocalDateTime.now();
+        this.admin = admin;
+        this.adminReason = adminReason;
+        this.adminHandledAt = now;
+        this.resolvedAt = now;
+        this.status = ReviewReportStatus.ADMIN_APPROVED;
+    }
+
+    /** 관리자가 신고를 반려 처리 (신고 기각) */
+    public void rejectByAdmin(Account admin, String adminReason) {
+        LocalDateTime now = LocalDateTime.now();
+        this.admin = admin;
+        this.adminReason = adminReason;
+        this.adminHandledAt = now;
+        this.resolvedAt = now;
+        this.status = ReviewReportStatus.ADMIN_REJECTED;
+    }
+
+    /** 신고 생성 팩토리 메서드 */
+    public static ReviewReport create(Review review, Member reporter, String reason, String detail) {
+        ReviewReport report = new ReviewReport();
+        report.review = review;
+        report.reporter = reporter;
+        report.reason = reason;
+        report.detail = detail;
+        report.status = ReviewReportStatus.PENDING_OWNER_REVIEW;
+        return report;
     }
 }

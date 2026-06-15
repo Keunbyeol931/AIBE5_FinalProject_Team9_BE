@@ -57,6 +57,7 @@ public class SecurityConfig {
                                 "/api/auth/register/manager",
                                 "/api/auth/login/member",
                                 "/api/auth/login/manager",
+                                "/api/auth/login/admin",
                                 "/api/auth/refresh",
                                 "/api/auth/logout",
                                 "/api/auth/oauth/google",
@@ -68,15 +69,16 @@ public class SecurityConfig {
                                 "/api/auth/check-nickname"
                         ).permitAll()
 
+                        .requestMatchers("/api/s3/**").permitAll()
+
                         // Theme - 조회는 인증 불필요
                         .requestMatchers(HttpMethod.GET,
-                                "/api/themes",
+                                "/api/themes/**",
                                 "/api/themes/popular",
                                 "/api/themes/{id}",
                                 "/api/themes/{id}/reviews",
                                 "/api/themes/{id}/slots",
-                                "/api/themes/{id}/age-check",
-                                "/api/themes/branches/{id}"
+                                "/api/themes/{id}/age-check"
                         ).permitAll()
 
                         // Branch - 조회는 인증 불필요

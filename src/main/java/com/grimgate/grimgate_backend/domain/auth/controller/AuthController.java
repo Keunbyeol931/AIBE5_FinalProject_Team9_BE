@@ -28,11 +28,11 @@ public class AuthController {
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }
 
-    // 매니저 회원 가입 (MANAGER 고정)
+    // 매니저 회원 가입 (MANAGER 고정, 지점 정보 포함)
     @PostMapping("/register/manager")
     public ResponseEntity<ApiResponse<SignupResponse>> signupManager(
-            @RequestBody @Valid SignupRequest request) {
-        SignupResponse response = authService.signup(request, Role.MANAGER);
+            @RequestBody @Valid ManagerSignupRequest request) {
+        SignupResponse response = authService.signupManager(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }
@@ -50,6 +50,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> loginManager(
             @RequestBody @Valid LoginRequest request) {
         TokenResponse response = authService.login(request, Role.MANAGER);
+        return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다.", response));
+    }
+
+    // 관리자 로그인 (ADMIN 고정)
+    @PostMapping("/login/admin")
+    public ResponseEntity<ApiResponse<TokenResponse>> loginAdmin(
+            @RequestBody @Valid LoginRequest request) {
+        TokenResponse response = authService.login(request, Role.ADMIN);
         return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다.", response));
     }
 
@@ -104,6 +112,13 @@ public class AuthController {
 
         authService.withdraw(accountId, accessToken);
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 완료되었습니다.", null));
+    }
+
+    // 내 정보 조회
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponse>> getMe() {
+        MeResponse response = authService.getCurrentUser();
+        return ResponseEntity.ok(ApiResponse.success("내 정보를 조회했습니다.", response));
     }
 
     // 비밀번호 변경
