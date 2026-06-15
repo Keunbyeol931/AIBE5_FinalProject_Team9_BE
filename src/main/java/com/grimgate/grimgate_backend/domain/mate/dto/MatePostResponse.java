@@ -4,6 +4,7 @@ import com.grimgate.grimgate_backend.domain.mate.entity.ExperienceLevel;
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePost;
 import com.grimgate.grimgate_backend.domain.mate.entity.MatePostStatus;
 import com.grimgate.grimgate_backend.domain.member.entity.Member;
+import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -30,6 +31,14 @@ public class MatePostResponse {
     private String authorNickname;
     private Long themeId;
     private String themeTitle;
+    /** 테마가 속한 매장명 (예: "셔록홈즈") */
+    private String storeName;
+    /** 지점명 (예: "강남점") */
+    private String branchName;
+    /** 지역 (예: "강남") */
+    private String region;
+    /** 지점 주소 */
+    private String address;
     private String title;
     private String content;
     private String imageUrl;
@@ -48,12 +57,17 @@ public class MatePostResponse {
     public static MatePostResponse of(MatePost post, boolean canSeeOpenChat) {
         Member member = post.getMember();
         Theme theme = post.getTheme();
+        Branch branch = theme != null ? theme.getBranch() : null;
         return MatePostResponse.builder()
                 .id(post.getId())
                 .memberId(member != null ? member.getId() : null)
                 .authorNickname(resolveNickname(member))
                 .themeId(theme != null ? theme.getId() : null)
                 .themeTitle(theme != null ? theme.getTitle() : null)
+                .storeName(branch != null ? branch.getStoreName() : null)
+                .branchName(branch != null ? branch.getBranchName() : null)
+                .region(branch != null ? branch.getRegion() : null)
+                .address(branch != null ? branch.getAddress() : null)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .imageUrl(post.getImageUrl())
