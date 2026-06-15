@@ -7,22 +7,20 @@ import com.grimgate.grimgate_backend.domain.review.repository.ReviewImageReposit
 import com.grimgate.grimgate_backend.domain.review.repository.ReviewRepository;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
 import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
+import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsResponse;
 import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
-import com.grimgate.grimgate_backend.domain.theme.dto.*;
+import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationStatsProjection;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeCreateResponse;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeResponse;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateRequest;
+import com.grimgate.grimgate_backend.domain.theme.dto.ThemeUpdateResponse;
 import com.grimgate.grimgate_backend.domain.theme.entity.Branch;
 import com.grimgate.grimgate_backend.domain.theme.entity.Theme;
 import com.grimgate.grimgate_backend.domain.theme.repository.BranchRepository;
 import com.grimgate.grimgate_backend.domain.theme.repository.ThemeRepository;
-import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationRepository;
-import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationSearchRequest;
-import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationResponse;
-import com.grimgate.grimgate_backend.domain.owner.dto.OwnerReservationStatsResponse;
-import com.grimgate.grimgate_backend.domain.reservation.repository.ReservationStatsProjection;
-import java.time.LocalDate;
-
 import com.grimgate.grimgate_backend.global.S3.S3Uploader;
 import com.grimgate.grimgate_backend.global.exception.CustomException;
-
 import com.grimgate.grimgate_backend.global.exception.ErrorCode;
 import com.grimgate.grimgate_backend.global.security.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,15 +45,8 @@ public class OwnerService {
     private final ReviewImageRepository reviewImageRepository;
     private final S3Uploader s3Uploader;
 
-    // 사장님 테마 관리 목록
-    public List<ThemeResponse> getOwnerThemes(Long branchId) {
-        return themeRepository.findByBranchId(branchId)
-                .stream()
-                .map(ThemeResponse::from)
-                .collect(Collectors.toList());
-    }
-
-    //테마 등록
+    // 테마 등록
+    @Transactional
     public ThemeCreateResponse createTheme(ThemeCreateRequest request, MultipartFile thumbnail) {
         String thumbnailUrl = s3Uploader.upload(thumbnail, "themes");
         Long accountId = SecurityUtil.getCurrentAccountId();
@@ -81,11 +72,11 @@ public class OwnerService {
                 .thumbnailUrl(thumbnailUrl)
                 .build();
 
-        Theme savedTheme = themeRepository.save(theme);
-        return new ThemeCreateResponse(savedTheme.getId(), LocalDateTime.now());
+        themeRepository.save(theme);
+        return new ThemeCreateResponse(theme.getId(), theme.getCreatedAt());
     }
 
-    //테마 수정
+    // 테마 수정
     @Transactional
     public ThemeUpdateResponse updateTheme(Long themeId, ThemeUpdateRequest request, MultipartFile thumbnail) {
 
@@ -102,7 +93,7 @@ public class OwnerService {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
 
-        //min이 max보다 크지 않도록 검증
+        // min이 max보다 크지 않도록 검증
         int minPeople = request.getMinPeople() != null
                 ? request.getMinPeople()
                 : theme.getMinPeople();
@@ -122,10 +113,10 @@ public class OwnerService {
         }
 
         theme.update(request);
-        return new ThemeUpdateResponse(theme.getId(), LocalDateTime.now());
+        return new ThemeUpdateResponse(theme.getId(), theme.getUpdatedAt());
     }
 
-    //테마 삭제
+    // 테마 삭제
     @Transactional
     public void deleteTheme(Long themeId) {
         Long accountId = SecurityUtil.getCurrentAccountId();
@@ -148,14 +139,14 @@ public class OwnerService {
                 .toList();
 
         reviewIds.forEach(reviewImageRepository::deleteByReviewId);
-       // 테마 후기 삭제
+        // 테마 후기 삭제
         reviewRepository.deleteByThemeId(themeId);
 
         themeRepository.deleteById(themeId);
     }
 
 
-    //테마 전체 조회
+    // 테마 전체 조회
     public List<ThemeResponse> getOwnerThemes() {
         Long accountId = SecurityUtil.getCurrentAccountId();
         Manager manager = managerRepository.findByAccount_Id(accountId)
@@ -218,4 +209,3 @@ public class OwnerService {
                 .build();
     }
 }
-

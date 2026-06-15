@@ -62,6 +62,9 @@ public class Branch {
      * 예: 강남점, 홍대점
      * 빠른예약 목록과 테마 상세 응답에서 사용자에게 노출됩니다.
      */
+    @Column(name = "store_name", nullable = false)
+    private String storeName;
+
     @Column(name = "branch_name", nullable = false)
     private String branchName;
 
@@ -103,10 +106,6 @@ public class Branch {
      *
      * Hibernate가 엔티티 최초 저장 시 자동으로 값을 채웁니다.
      */
-
-    @Column(name = "store_name", nullable = false)
-    private String storeName;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -131,8 +130,8 @@ public class Branch {
             Long id,
             Long managerId,
             String branchCode,
-            String branchName,
             String storeName,
+            String branchName,
             String region,
             String address,
             String phone,
@@ -141,8 +140,8 @@ public class Branch {
         this.id = id;
         this.managerId = managerId;
         this.branchCode = branchCode;
-        this.branchName = branchName;
         this.storeName = storeName;
+        this.branchName = branchName;
         this.region = region;
         this.address = address;
         this.phone = phone;
