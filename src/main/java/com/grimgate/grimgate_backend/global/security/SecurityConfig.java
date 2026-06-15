@@ -113,6 +113,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/ai/recommend").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ai/recommend/random").permitAll()
 
+                        // Minigame - 플레이 관련 엔드포인트는 비회원도 접근 가능
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/minigame/start",
+                                "/api/minigame/stages/*/verify",
+                                "/api/minigame/complete"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/minigame/stages/*",
+                                "/api/minigame/ending/recommendations"
+                        ).permitAll()
+
                         // Admin - ADMIN 역할만 접근 가능
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 

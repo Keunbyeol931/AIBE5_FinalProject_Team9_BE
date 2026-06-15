@@ -83,7 +83,15 @@ public enum ErrorCode {
     PAYMENT_KEY_MISSING(HttpStatus.BAD_REQUEST, "결제 고유 키(paymentKey)가 존재하지 않습니다."),
 
     // 엑셀 내보내기
-    EXCEL_EXPORT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "엑셀 파일 생성에 실패했습니다.");
+    EXCEL_EXPORT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "엑셀 파일 생성에 실패했습니다."),
+
+    // 미니게임
+    MINIGAME_PLAY_NOT_FOUND(HttpStatus.NOT_FOUND, "유효하지 않은 플레이 토큰입니다."),
+    MINIGAME_TIME_EXPIRED(HttpStatus.BAD_REQUEST, "제한 시간이 초과되었습니다."),
+    MINIGAME_STAGE_LOCKED(HttpStatus.BAD_REQUEST, "이전 단계를 먼저 클리어해야 합니다."),
+    MINIGAME_INVALID_STAGE(HttpStatus.BAD_REQUEST, "현재 진행 중인 단계가 아닙니다."),
+    MINIGAME_TOO_MANY_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "이 단계의 시도 횟수를 모두 사용했습니다."),
+    MINIGAME_ALREADY_FINISHED(HttpStatus.BAD_REQUEST, "이미 종료된 게임 세션입니다.");
 
     private final HttpStatus httpStatus;
     private final String message;
