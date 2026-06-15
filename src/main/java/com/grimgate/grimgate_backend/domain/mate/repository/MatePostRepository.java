@@ -11,6 +11,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
@@ -21,6 +22,23 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MatePostRepository
         extends JpaRepository<MatePost, Long>, JpaSpecificationExecutor<MatePost> {
+
+    /**
+     * 동적 필터 목록 조회 시 Theme → Branch 까지 한 번에 로딩.
+     * MatePostResponse 에 storeName/branchName/region/address 를 노출하므로 N+1 방지
+     * 을 위해 EntityGraph 적용. (member 는 작성자 닉네임 노출에도 필요)
+     */
+    @Override
+    @EntityGraph(attributePaths = {"member", "member.account", "theme", "theme.branch"})
+    Page<MatePost> findAll(Specification<MatePost> spec, Pageable pageable);
+
+    /**
+     * 상세 조회용 단건 조회 (member/theme/branch 까지 로딩).
+     * 비관적 락이 필요한 findByIdForUpdate 와는 용도가 다르다.
+     */
+    @EntityGraph(attributePaths = {"member", "member.account", "theme", "theme.branch"})
+    @Query("select p from MatePost p where p.id = :id")
+    Optional<MatePost> findDetailById(@Param("id") Long id);
 
     /** soft delete 되지 않은 글만 조회 */
     long countByStatusAndDeletedAtIsNull(MatePostStatus status);

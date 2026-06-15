@@ -204,7 +204,8 @@ public class MatePostService {
     /* ===== Helpers ===== */
 
     MatePost getActivePost(Long postId) {
-        MatePost post = matePostRepository.findById(postId)
+        // member/theme/branch 까지 함께 로딩해 응답 조립 시 추가 쿼리 발생 방지
+        MatePost post = matePostRepository.findDetailById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MATE_POST_NOT_FOUND));
         if (post.isDeleted()) {
             throw new CustomException(ErrorCode.MATE_POST_NOT_FOUND);
