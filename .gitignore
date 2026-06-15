@@ -40,6 +40,7 @@ out/
 src/main/resources/application-local.yaml
 src/main/resources/application-prod.yaml
 
+
 # secret
 .env
 src/main/resources/application-secret.yaml
