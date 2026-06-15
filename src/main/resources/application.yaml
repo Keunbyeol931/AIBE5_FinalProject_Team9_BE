@@ -16,6 +16,9 @@ spring:
       s3:
         bucket: ${AWS_S3_BUCKET:dummy}
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
 
 toss:
   secret-key: ${TOSS_SECRET_KEY:dummy}

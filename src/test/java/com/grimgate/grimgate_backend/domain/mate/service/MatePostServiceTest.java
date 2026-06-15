@@ -154,7 +154,7 @@ class MatePostServiceTest {
     void update_forbidden() throws Exception {
         MatePost post = buildPostByAuthor();
         when(memberRepository.findByAccount_Id(OTHER_ACCOUNT_ID)).thenReturn(Optional.of(otherMember));
-        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(matePostRepository.findDetailById(POST_ID)).thenReturn(Optional.of(post));
 
         MatePostUpdateRequest req = MatePostUpdateRequest.builder()
                 .title("바뀐 제목입니다")
@@ -170,7 +170,7 @@ class MatePostServiceTest {
     void update_success_partial() throws Exception {
         MatePost post = buildPostByAuthor();
         when(memberRepository.findByAccount_Id(AUTHOR_ACCOUNT_ID)).thenReturn(Optional.of(authorMember));
-        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(matePostRepository.findDetailById(POST_ID)).thenReturn(Optional.of(post));
 
         MatePostUpdateRequest req = MatePostUpdateRequest.builder()
                 .title("수정된 제목입니다")
@@ -190,7 +190,7 @@ class MatePostServiceTest {
     @DisplayName("getDetail - 비로그인 사용자에게는 openChatUrl 미노출")
     void detail_anonymous_hidesOpenChatUrl() throws Exception {
         MatePost post = buildPostByAuthor();
-        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(matePostRepository.findDetailById(POST_ID)).thenReturn(Optional.of(post));
 
         MatePostResponse res = matePostService.getDetail(POST_ID, null);
         assertThat(res.getOpenChatUrl()).isNull();
@@ -200,7 +200,7 @@ class MatePostServiceTest {
     @DisplayName("getDetail - 작성자 본인에게는 openChatUrl 노출")
     void detail_author_seesOpenChatUrl() throws Exception {
         MatePost post = buildPostByAuthor();
-        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(matePostRepository.findDetailById(POST_ID)).thenReturn(Optional.of(post));
         when(memberRepository.findByAccount_Id(AUTHOR_ACCOUNT_ID)).thenReturn(Optional.of(authorMember));
 
         MatePostResponse res = matePostService.getDetail(POST_ID, AUTHOR_ACCOUNT_ID);
@@ -212,7 +212,7 @@ class MatePostServiceTest {
     void detail_softDeleted() throws Exception {
         MatePost post = buildPostByAuthor();
         post.softDelete();
-        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(matePostRepository.findDetailById(POST_ID)).thenReturn(Optional.of(post));
 
         assertThatThrownBy(() -> matePostService.getDetail(POST_ID, null))
                 .isInstanceOf(CustomException.class)
@@ -226,7 +226,7 @@ class MatePostServiceTest {
     void softDelete_success() throws Exception {
         MatePost post = buildPostByAuthor();
         when(memberRepository.findByAccount_Id(AUTHOR_ACCOUNT_ID)).thenReturn(Optional.of(authorMember));
-        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(matePostRepository.findDetailById(POST_ID)).thenReturn(Optional.of(post));
 
         matePostService.softDelete(AUTHOR_ACCOUNT_ID, POST_ID);
 
@@ -239,7 +239,7 @@ class MatePostServiceTest {
     void softDelete_forbidden() throws Exception {
         MatePost post = buildPostByAuthor();
         when(memberRepository.findByAccount_Id(OTHER_ACCOUNT_ID)).thenReturn(Optional.of(otherMember));
-        when(matePostRepository.findById(POST_ID)).thenReturn(Optional.of(post));
+        when(matePostRepository.findDetailById(POST_ID)).thenReturn(Optional.of(post));
 
         assertThatThrownBy(() -> matePostService.softDelete(OTHER_ACCOUNT_ID, POST_ID))
                 .isInstanceOf(CustomException.class)

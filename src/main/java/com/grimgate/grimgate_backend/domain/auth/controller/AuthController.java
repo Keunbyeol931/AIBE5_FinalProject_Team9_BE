@@ -28,11 +28,11 @@ public class AuthController {
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }
 
-    // 매니저 회원 가입 (MANAGER 고정)
+    // 매니저 회원 가입 (MANAGER 고정, 지점 정보 포함)
     @PostMapping("/register/manager")
     public ResponseEntity<ApiResponse<SignupResponse>> signupManager(
-            @RequestBody @Valid SignupRequest request) {
-        SignupResponse response = authService.signup(request, Role.MANAGER);
+            @RequestBody @Valid ManagerSignupRequest request) {
+        SignupResponse response = authService.signupManager(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }

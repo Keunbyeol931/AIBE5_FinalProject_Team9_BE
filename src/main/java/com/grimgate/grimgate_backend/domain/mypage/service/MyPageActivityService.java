@@ -24,7 +24,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -152,7 +151,7 @@ public class MyPageActivityService {
 
     //내 후기 삭제
     @Transactional
-    public ReviewDeleteResponse deleteMyReview(Long reviewId) {
+    public void deleteMyReview(Long reviewId) {
         Long accountId = SecurityUtil.getCurrentAccountId();
 
         Member member = memberRepository.findByAccount_Id(accountId)
@@ -182,8 +181,6 @@ public class MyPageActivityService {
         double newRating = Math.round(average * 10.0) / 10.0;
         theme.updateRating(newRating, remaining.size());
         themeRepository.save(theme);
-
-        return new ReviewDeleteResponse(review.getId(), LocalDateTime.now());
 
     }
 
