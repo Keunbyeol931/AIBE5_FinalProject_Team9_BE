@@ -34,6 +34,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -136,6 +137,7 @@ public class PaymentService {
      * @param request 결제 승인 요청 DTO
      * @return 결제 승인 완료 결과 응답 DTO
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
         // 1. orderId 기준 Payment 조회
         Payment payment = paymentRepository.findByOrderId(request.getOrderId())
@@ -283,6 +285,7 @@ public class PaymentService {
      * @param request 환불 요청 DTO
      * @return 결제 환불 결과 응답 DTO
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public PaymentRefundResponse refundPayment(Long paymentId, PaymentRefundRequest request) {
         // 1. 사전 검증 트랜잭션 호출
         Payment payment = paymentRefundHelper.validateRefund(paymentId);
