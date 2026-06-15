@@ -6,6 +6,17 @@ spring:
     active: local
     include: secret
 
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:ap-northeast-2}
+      credentials:
+        access-key: ${AWS_ACCESS_KEY:dummy}
+        secret-key: ${AWS_SECRET_KEY:dummy}
+      s3:
+        bucket: ${AWS_S3_BUCKET:dummy}
+
+
 toss:
   secret-key: ${TOSS_SECRET_KEY:dummy}
   webhook-secret-key: ${TOSS_WEBHOOK_SECRET:dummy_webhook_secret_key}
