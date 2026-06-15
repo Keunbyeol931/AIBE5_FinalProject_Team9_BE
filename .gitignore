@@ -58,6 +58,9 @@ Desktop.ini
 # pem key
 *.pem
 
+# patch files
+*.patch
+
 # logs
 *.log
 server_log.txt
